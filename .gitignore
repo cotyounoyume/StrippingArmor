@@ -5,4 +5,6 @@
 *.timestamp
 deploy-*.ps1
 extern/
+build/
+Plugin/dist
 aaacmake.bat
