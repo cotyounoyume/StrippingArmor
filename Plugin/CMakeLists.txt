@@ -51,7 +51,7 @@ add_library(
 		${CMAKE_CURRENT_BINARY_DIR}/version.rc
 		.clang-format
 		vcpkg.json
-)
+ "src/Utility.h" "src/Utility.cpp")
 
 # include dir
 target_include_directories(

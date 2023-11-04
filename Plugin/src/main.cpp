@@ -1,5 +1,6 @@
 #include "DKUtil/Hook.hpp"
 #include "PCH.h"
+#include "Utility.h"
 
 // SFSE message listener, use this to do stuff at specific moments during runtime
 void Listener(SFSE::MessagingInterface::Message* message) noexcept
@@ -7,21 +8,6 @@ void Listener(SFSE::MessagingInterface::Message* message) noexcept
 	if (message->type == SFSE::MessagingInterface::kPostLoad) {
 		RE::UI::GetSingleton()->RegisterSink(Events::EventHandlerForMenu::GetSingleton());
 		//RE::UI::GetSingleton()->RegisterSink(Events::EventHandlerForContainer::GetSingleton());
-	}
-}
-
-namespace Debug
-{
-	void Notification(std::string message)
-	{
-		bool NotificationOn = false;
-		bool InfoOn = false;
-		//NotificationOn = true;
-		InfoOn = true;
-		if (NotificationOn)
-			RE::DebugNotification(message.c_str());
-		if (InfoOn)
-			logger::info("{}", message);
 	}
 }
 
@@ -38,26 +24,26 @@ namespace Config
 		if (!std::filesystem::exists(path))
 			return;
 
-		Debug::Notification(fmt::format("StrippingArmor: path={}", path.string()));
+		Utility::Notification(fmt::format("StrippingArmor: path={}", path.string()));
 		auto        config = toml::parse_file(path.string());
 
 		std::string key = config["Config"]["StrippingKey"].value_or("");
 		if (key == "")
 			return;
 		StrippingKey = key;
-		Debug::Notification(fmt::format("StrippingArmor: key={}, keynum={}", key, key.c_str()[0]));
+		Utility::Notification(fmt::format("StrippingArmor: key={}, keynum={}", key, key.c_str()[0]));
 
 		std::string effect = config["Config"]["Effect"].value_or("");
 		if (effect == "")
 			return;
 		EffectOn = (effect == "True" || effect == "true");
-		Debug::Notification(fmt::format("StrippingArmor: effect={}, EffectOn={}", effect, EffectOn));
+		Utility::Notification(fmt::format("StrippingArmor: effect={}, EffectOn={}", effect, EffectOn));
 
 		std::string alternativeCloth = config["Config"]["AlternativeCloth"].value_or("");
 		if (alternativeCloth == "")
 			return;
 		AlternativeClothOn = (alternativeCloth == "True" || alternativeCloth == "true");
-		Debug::Notification(fmt::format("StrippingArmor: alternativeCloth={}, AlternativeClothOn={}", alternativeCloth, AlternativeClothOn));
+		Utility::Notification(fmt::format("StrippingArmor: alternativeCloth={}, AlternativeClothOn={}", alternativeCloth, AlternativeClothOn));
 	}
 
 	std::string GetStrippingKey()
@@ -102,68 +88,110 @@ namespace Main
 {
 	REL::Relocation<__int64 (*)(double, char*, ...)> ExecuteCommand{ REL::ID(166307) };  // From Console-Command-Runner-SF
 
-	std::string num2hex(int num);
 	bool        IsKeyPressed();
-	void        Undress(RE::TESObjectREFR* obj);
-	void        Test(RE::TESObjectREFR* obj);
 	void        StrippingArmor(RE::TESObjectREFR* obj);
+	void        UpdateCrosshairTarget();
+	void        StateSelector();
+	void        StateTargetOnCrosshairOn();
+	void        StateTargetOnCrosshairOff();
+	void        StateTargetOffCrosshairOn();
+	void        StateTargetOffCrosshairOff();
+
 	bool        EffectON = false;
 
-	void ExecuteCommandString(std::string command)
-	{
-		ExecuteCommand(0, command.data());
-		Debug::Notification(command);
-	}
+	RE::TESObjectREFR* target;
+	RE::TESObjectREFR* LastTarget;
+	bool               crosshairrefOn = false;
+	int                WaitCount = 0;
+	int                TimePerFrame = 200;
+	std::vector<int>   InitialForms;
+	std::vector<int>   LastForms;
+	std::vector<int>   CurrentForms;
+	std::unordered_map<int, RE::TESBoundObject*> ArmorMap;
 
 	static DWORD MainLoop(void* unused)
 	{
-		Debug::Notification("Main Start");
+		Utility::Notification("Main Start");
 		Config::ReadIni();
-		int WaitCount = 0;
-		(void)unused;
-		bool               crosshairrefOn = false;
-		int                TimePerFrame = 50;
-		RE::TESObjectREFR* LastObject;
 
 		while (true) {
 			Sleep(TimePerFrame);
-			auto* player = RE::PlayerCharacter::GetSingleton();
-			if (player == nullptr)
+			if (!Utility::InGameScene())
 				continue;
-			auto obj = RE::PlayerCharacter::GetSingleton()->crosshairRef;
-			if (obj == nullptr && !crosshairrefOn)
-				continue;
-			if (obj != nullptr && crosshairrefOn) {
-				if (!LastObject->IsActor())
-					continue;
-				if (WaitCount > 0) {
-					WaitCount--;
-					continue;
-				}
-				if (IsKeyPressed()) {
-					WaitCount = 10;
-					StrippingArmor(obj);
-				}
-			}
-
-			if (obj && !crosshairrefOn) {
-				LastObject = obj;
-				crosshairrefOn = true;
-			} else {
-				crosshairrefOn = false;
-				LastObject = nullptr;
-			}
+			UpdateCrosshairTarget();
+			StateSelector();
 		}
 
 		return 0;
 	}
 
+	void UpdateCrosshairTarget()
+	{
+		auto tmpTarget = RE::PlayerCharacter::GetSingleton()->crosshairRef;
+		if (tmpTarget != nullptr && tmpTarget->IsActor())
+			target = tmpTarget;
+		else
+			target = nullptr;
+	}
+
+	void StateSelector() 
+	{
+		if (target == nullptr && !crosshairrefOn) {
+			StateTargetOffCrosshairOff();
+		} else if(target != nullptr && crosshairrefOn) {
+			StateTargetOnCrosshairOn();
+		} else if (target && !crosshairrefOn) {
+			StateTargetOnCrosshairOff();
+		} else {
+			StateTargetOffCrosshairOn();
+		}
+	}
+
+	void StateTargetOffCrosshairOff()
+	{
+		return;
+	}
+
+	void StateTargetOnCrosshairOff()
+	{
+		if (!target->IsActor())
+			return;
+		crosshairrefOn = true;
+		LastTarget = target;
+		Utility::ReadyForLoot(target);
+		ArmorMap = Utility::GetArmorFormIDPairs(target);
+		InitialForms = Utility::GetArmorFormIDs(target);
+		//auto vector = Utility::GetItemFormIDs(target);
+		Utility::Notification(fmt::format("{}: 1: InitialForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(InitialForms, ", ", true, true)));
+		//Utility::Notification(fmt::format("{}: 1: ItemForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(vector, ", ", true, true)));
+	}
+
+	void StateTargetOnCrosshairOn()
+	{
+		CurrentForms = Utility::GetArmorFormIDs(target);
+
+		if (WaitCount > 0) {
+			WaitCount--;
+			return;
+		}
+		if (IsKeyPressed()) {
+			WaitCount = 10;
+			StrippingArmor(target);
+		}
+	}
+
+	void StateTargetOffCrosshairOn()
+	{
+		crosshairrefOn = false;
+		Utility::Notification(fmt::format("{}: 2: InitialForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(InitialForms, ", ", true, true)));
+		Utility::Notification(fmt::format("{}: 2: CurrentForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(CurrentForms, ", ", true, true)));
+		LastTarget = nullptr;
+	}
+
+
 	bool IsKeyPressed()
 	{
-		if (RE::UI::GetSingleton()->IsMenuOpen("Console"))
-			return false;
-		else
-			return SFSE::WinAPI::GetKeyState(Config::GetStrippingKeyNumber()) & 0x8000;
+		return SFSE::WinAPI::GetKeyState(Config::GetStrippingKeyNumber()) & 0x8000;
 	}
 
 	void StrippingArmor(RE::TESObjectREFR* obj)
@@ -171,18 +199,11 @@ namespace Main
 		if (obj == nullptr)
 			return;
 		bool bForced = RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu");
-		Debug::Notification(fmt::format("in Undress: bForced:{}", bForced));
+		Utility::Notification(fmt::format("in Undress: bForced:{}", bForced));
 
-		ExecuteCommandString(fmt::format("prid {}", num2hex(obj->formID)));
-		ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\"", 
+		Utility::ExecuteCommandString(fmt::format("prid {}", Utility::num2hex(obj->formID)));
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\"", 
 			obj->formID, bForced, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));		
-	}
-
-	std::string num2hex(int num)
-	{
-		std::stringstream ss;
-		ss << std::hex << num;
-		return ss.str();
 	}
 }
 
