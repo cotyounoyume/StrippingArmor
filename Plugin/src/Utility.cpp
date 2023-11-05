@@ -33,6 +33,13 @@ namespace Utility
 			return false;
 		if (RE::UI::GetSingleton()->IsMenuOpen("Console"))
 			return false;
+		if (RE::UI::GetSingleton()->IsMenuOpen("PauseMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("FaderMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("LoadingMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("MainMenu")
+			)
+			return false;
+
 		return true;
 	}
 
@@ -123,31 +130,11 @@ namespace Utility
 					return RE::BSContainer::ForEachResult::kContinue;
 				}
 				ItemTypesForScanner[item.object] = GetArmorType(item);
-				//if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBody")) {
-				//	Notification(fmt::format("  item:{} is spacesuit", num2hex(item.object->formID)));
-				//	ItemTypesForScanner[item.object] = "Spacesuit";
-				//} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBackpack")) {
-				//	Notification(fmt::format("  item:{} is backpack", num2hex(item.object->formID)));
-				//	ItemTypesForScanner[item.object] = "Backpack";
-				//} else {
-				//	ItemTypesForScanner[item.object] = "";
-				//}
-					//if (HasDontStripKeyword(item)) {
-						//if (item.instanceData->GetKeywordData()->ContainsKeywordString("DontStripThis")) {
-					//skip
-				//} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBody")) {
-				//	Notification(fmt::format("  item:{} is spacesuit", num2hex(item.object->formID)));
-				//	ItemTypesForScanner[item.object] = "Spacesuit";
-				//} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBackpack")) {
-				//	Notification(fmt::format("  item:{} is backpack", num2hex(item.object->formID)));
-				//	ItemTypesForScanner[item.object] = "Backpack";
-				//} else {
 			}
 
 			return RE::BSContainer::ForEachResult::kContinue;
 		};
 		actor->ForEachEquippedItem(scanner);
-		//actor->ForEachInventoryItem(scanner);
 		Notification("GetArmorTypes Finish:");
 		return ItemTypesForScanner;
 	}
@@ -155,24 +142,38 @@ namespace Utility
 	std::string GetArmorType(const RE::BGSInventoryItem& item)
 	{
 		std::string result = "";
-		auto        slotNum = item.object->GetFilledSlots();
-		auto        slotNum2 = item.object->GetFilledSlotsImpl();
-		auto        name = item.object->GetFormEditorID();
-		auto        objectTypeName = item.object->GetObjectTypeName();
-		//auto        desirability = item.object->GetDesirability();
-		//Notification(fmt::format("  item: {}: slotNum={}, slotNum2={}, objectTypeName={}, desirability={}", name, slotNum, slotNum2, objectTypeName, desirability));
-		Notification(fmt::format("  item: {}: slotNum={}, slotNum2={}, objectTypeName={}", name, slotNum, slotNum2, objectTypeName));
+		if (!item.object->IsArmor() || item.instanceData == nullptr || item.instanceData->GetKeywordData() == nullptr) {
+			result = "Error";
+			Notification(fmt::format("    GetArmorType: item: {}: result:{}", item.object->GetFormEditorID(), result));
+			return result;
+		} 
+
+		if (item.object->GetFilledSlots() != 0) {
+			result = "Cloth";
+			Notification(fmt::format("    GetArmorType: item: {}: result:{}", item.object->GetFormEditorID(), result));
+			return result;
+		}
+
+		if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBody")) {
+			result = "Spacesuit";
+		} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBackpack")) {
+			result = "Backpack";
+		} else {
+			result = "Helmet";
+		}
+		Notification(fmt::format("    GetArmorType: item: {}: result:{}", item.object->GetFormEditorID(), result));
+
 		return result;
 	}
 
 	std::unordered_map<RE::TESBoundObject*, int> CollectInventoryItems(RE::TESObjectREFR* actor, std::string itemType)
 	{
-		Notification("CollectInventoryItems Start:");
+		//Notification("CollectInventoryItems Start:");
 		ItemType = itemType;
 		ItemForScanner.clear();
 
 		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			Notification(fmt::format("item: {}: {}", num2hex(item.object->formID), item.object->GetFormEditorID())); 
+			//Notification(fmt::format("item: {}: {}", num2hex(item.object->formID), item.object->GetFormEditorID())); 
 			bool isTarget = false;
 			isTarget = (ItemType == "ALL") ? true : isTarget;
 			isTarget = (ItemType == "ARMOR" && item.object->IsArmor()) ? true : isTarget;
@@ -184,7 +185,7 @@ namespace Utility
 			return RE::BSContainer::ForEachResult::kContinue;
 		};
 		actor->ForEachInventoryItem(scanner);
-		Notification("CollectInventoryItems Finish:");
+		//Notification("CollectInventoryItems Finish:");
 		return ItemForScanner;
 	}
 
@@ -222,7 +223,6 @@ namespace Utility
 		std::string quote = quoteOn ? "\"" : "";
 		for (int formID : list) {
 			std::string sFormID = (hexOn) ? num2hex(formID) : fmt::format("{}", formID);
-			//result = result + separator + quote + Utility::int2hex(formID) + quote;
 			result = result + separator + quote + sFormID + quote;
 		}
 		return result;
@@ -240,13 +240,12 @@ namespace Utility
 		num = _num;
 		type = _type;
 	}
+
 	//void SurveyInventory(RE::TESObjectREFR* actor)
 	//{
 	//	if (actor == nullptr)
 	//		return;
-	//	int debugCount = 0;
 	//	for (const RE::BGSInventoryItem& item : CollectInventoryItems(actor, "All")) {
-	//		debugCount++;
 	//		bool any0 = item.flags.any(RE::BGSInventoryItem::Flag::kEquipStateLocked);
 	//		bool any1 = item.flags.any(RE::BGSInventoryItem::Flag::kInvShouldEquip);
 	//		bool any2 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex1);
@@ -257,7 +256,6 @@ namespace Utility
 	//		auto unk24 = item.unk24;
 
 	//		Notification(fmt::format("item:{}, {}", num2hex(item.object->formID), item.object->GetFormEditorID()));
-	//		Notification(fmt::format("  debugCount\t:{}", debugCount));
 	//		Notification(fmt::format("  kEquipStateLocked\t:{}", any0));
 	//		Notification(fmt::format("  kInvShouldEquip\t:{}", any1));
 	//		Notification(fmt::format("  kSlotIndex1\t:{}", any2));

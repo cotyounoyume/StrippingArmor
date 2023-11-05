@@ -73,6 +73,7 @@ namespace Events
 
 	RE::BSEventNotifyControl EventHandlerForMenu::ProcessEvent(const RE::MenuOpenCloseEvent& a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
 	{
+		Utility::Notification(fmt::format("Menu: name:{}, opening:{}", a_event.menuName.c_str(), a_event.opening));
 		//for future release
 		return RE::BSEventNotifyControl::kContinue;
 	}
@@ -97,18 +98,21 @@ namespace Main
 	void        StateTargetOnCrosshairOff();
 	void        StateTargetOffCrosshairOn();
 	void        StateTargetOffCrosshairOff();
-
+	int         GetArmorClothCombination();
 	bool        EffectON = false;
 
 	RE::TESObjectREFR* target;
 	RE::TESObjectREFR* LastTarget;
 	bool               crosshairrefOn = false;
 
+
 	int WaitCount = 0;
 	int WaitCountPlus = 10;
 	int TimePerFrame = 200;
 
 	std::unordered_map<RE::TESBoundObject*, std::string> ArmorTypesMap;
+	std::unordered_map<RE::TESObjectREFR*, bool> ReadyStateMap;
+	std::unordered_map<RE::TESObjectREFR*, int> ArmorClothCombinationMap;
 
 	//std::vector<int>   InitialForms;
 	//std::vector<int>   LastForms;
@@ -166,11 +170,14 @@ namespace Main
 		LastTarget = target;
 		if (!target->IsDead(true))
 			return;
-		Utility::PrintArmorStacks2(target);
+		ReadyStateMap[target] = true;
+		//Utility::PrintArmorStacks2(target);
 		Utility::ReadyForLoot2(target);
-		Utility::PrintArmorStacks2(target);
+		//Utility::PrintArmorStacks2(target);
 		ArmorTypesMap = Utility::GetArmorTypes(target);
 		WaitCount = WaitCountPlus;
+		if (!ArmorClothCombinationMap.contains(target))
+			ArmorClothCombinationMap[target] = GetArmorClothCombination();
 	}
 
 	void StateTargetOnCrosshairOn()
@@ -180,9 +187,13 @@ namespace Main
 			return;
 		}
 		if (target->IsDead(true)) {
+			if (ReadyStateMap[target] == false)
+				return;
 			auto armors = Utility::GetLootedArmors(target);
 			for (auto armor : armors) {
-				Utility::Notification(fmt::format("{}: {}: {}, {}", armor->formID, armor->GetFormEditorID(), armor->GetFilledSlots(), armor->GetFormType()));
+				if (!ArmorTypesMap.contains(armor))
+					continue;
+				Utility::Notification(fmt::format("  Looted:{}: {}: {}", Utility::num2hex(armor->formID), armor->GetFormEditorID(), ArmorTypesMap[armor]));
 
 				if (ArmorTypesMap.contains(armor) && ArmorTypesMap[armor] == "Spacesuit") {
 					StrippingArmorAlt(target, Utility::num2hex(armor->formID));
@@ -206,9 +217,26 @@ namespace Main
 	void StateTargetOffCrosshairOn()
 	{
 		crosshairrefOn = false;
+		ReadyStateMap.erase(target);
 		LastTarget = nullptr;
 	}
 
+	int GetArmorClothCombination()
+	{
+		bool clothOn = false;
+		bool suitOn = false;
+		for (auto itr = ArmorTypesMap.begin(); itr != ArmorTypesMap.end(); ++itr) {
+			if (itr->second == "Cloth")
+				clothOn = true;
+			if (itr->second == "Spacesuit")
+				suitOn = true;
+		}
+
+		int result = (clothOn) ? 2 : 0;
+		result += (suitOn) ? 1 : 0;
+		Utility::Notification(fmt::format("GetArmorClothCombination: result:{}, clothOn:{}, suitOn:{}", result, clothOn, suitOn));
+		return result;
+	}
 
 	bool IsKeyPressed()
 	{
@@ -220,7 +248,9 @@ namespace Main
 		if (obj == nullptr)
 			return;
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMeAlt\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
-			obj->formID, Utility::num2hex(obj->formID), itemFormID, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));
+			obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[target], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));
+		ArmorClothCombinationMap.erase(target);
+
 	}
 
 	void StrippingArmor(RE::TESObjectREFR* obj)
