@@ -102,8 +102,11 @@ namespace Main
 	RE::TESObjectREFR* target;
 	RE::TESObjectREFR* LastTarget;
 	bool               crosshairrefOn = false;
-	int                WaitCount = 0;
-	int                TimePerFrame = 200;
+
+	int WaitCount = 0;
+	int WaitCountPlus = 10;
+	int TimePerFrame = 200;
+
 	std::vector<int>   InitialForms;
 	std::vector<int>   LastForms;
 	std::vector<int>   CurrentForms;
@@ -158,25 +161,36 @@ namespace Main
 			return;
 		crosshairrefOn = true;
 		LastTarget = target;
-		Utility::ReadyForLoot(target);
+		Utility::PrintArmorStacks2(target);
+		Utility::ReadyForLoot2(target);
+		Utility::PrintArmorStacks2(target);
+		WaitCount = WaitCountPlus;
+
 		ArmorMap = Utility::GetArmorFormIDPairs(target);
 		InitialForms = Utility::GetArmorFormIDs(target);
-		//auto vector = Utility::GetItemFormIDs(target);
 		Utility::Notification(fmt::format("{}: 1: InitialForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(InitialForms, ", ", true, true)));
-		//Utility::Notification(fmt::format("{}: 1: ItemForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(vector, ", ", true, true)));
 	}
 
 	void StateTargetOnCrosshairOn()
 	{
-		CurrentForms = Utility::GetArmorFormIDs(target);
-
 		if (WaitCount > 0) {
 			WaitCount--;
 			return;
 		}
-		if (IsKeyPressed()) {
-			WaitCount = 10;
-			StrippingArmor(target);
+		Utility::Notification(fmt::format("In StateTargetOnCrosshairOn"));
+		if (target->IsDead(true)) {
+			Utility::Notification(fmt::format("In StateTargetOnCrosshairOn: isDead route"));
+			auto armors = Utility::GetLootedArmors(target);
+			for (auto armor : armors) {
+				Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
+				Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+			}
+		} else {
+			Utility::Notification(fmt::format("In StateTargetOnCrosshairOn: NOT isDead route"));
+			if (IsKeyPressed()) {
+				WaitCount = 10;
+				StrippingArmor(target);
+			}
 		}
 	}
 
