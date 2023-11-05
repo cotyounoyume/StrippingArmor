@@ -90,6 +90,7 @@ namespace Main
 
 	bool        IsKeyPressed();
 	void        StrippingArmor(RE::TESObjectREFR* obj);
+	void        StrippingArmorAlt(RE::TESObjectREFR* obj, std::string itemFormID);
 	void        UpdateCrosshairTarget();
 	void        StateSelector();
 	void        StateTargetOnCrosshairOn();
@@ -107,10 +108,12 @@ namespace Main
 	int WaitCountPlus = 10;
 	int TimePerFrame = 200;
 
-	std::vector<int>   InitialForms;
-	std::vector<int>   LastForms;
-	std::vector<int>   CurrentForms;
-	std::unordered_map<int, RE::TESBoundObject*> ArmorMap;
+	std::unordered_map<RE::TESBoundObject*, std::string> ArmorTypesMap;
+
+	//std::vector<int>   InitialForms;
+	//std::vector<int>   LastForms;
+	//std::vector<int>   CurrentForms;
+	//std::unordered_map<int, RE::TESBoundObject*> ArmorMap;
 
 	static DWORD MainLoop(void* unused)
 	{
@@ -161,14 +164,13 @@ namespace Main
 			return;
 		crosshairrefOn = true;
 		LastTarget = target;
+		if (!target->IsDead(true))
+			return;
 		Utility::PrintArmorStacks2(target);
 		Utility::ReadyForLoot2(target);
 		Utility::PrintArmorStacks2(target);
+		ArmorTypesMap = Utility::GetArmorTypes(target);
 		WaitCount = WaitCountPlus;
-
-		ArmorMap = Utility::GetArmorFormIDPairs(target);
-		InitialForms = Utility::GetArmorFormIDs(target);
-		Utility::Notification(fmt::format("{}: 1: InitialForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(InitialForms, ", ", true, true)));
 	}
 
 	void StateTargetOnCrosshairOn()
@@ -177,16 +179,23 @@ namespace Main
 			WaitCount--;
 			return;
 		}
-		Utility::Notification(fmt::format("In StateTargetOnCrosshairOn"));
 		if (target->IsDead(true)) {
-			Utility::Notification(fmt::format("In StateTargetOnCrosshairOn: isDead route"));
 			auto armors = Utility::GetLootedArmors(target);
 			for (auto armor : armors) {
-				Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
-				Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+				Utility::Notification(fmt::format("{}: {}: {}, {}", armor->formID, armor->GetFormEditorID(), armor->GetFilledSlots(), armor->GetFormType()));
+
+				if (ArmorTypesMap.contains(armor) && ArmorTypesMap[armor] == "Spacesuit") {
+					StrippingArmorAlt(target, Utility::num2hex(armor->formID));
+					if (Config::GetEffectEnabled())
+						Sleep(100);
+					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
+					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+				} else {
+					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
+					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+				}
 			}
 		} else {
-			Utility::Notification(fmt::format("In StateTargetOnCrosshairOn: NOT isDead route"));
 			if (IsKeyPressed()) {
 				WaitCount = 10;
 				StrippingArmor(target);
@@ -197,8 +206,6 @@ namespace Main
 	void StateTargetOffCrosshairOn()
 	{
 		crosshairrefOn = false;
-		Utility::Notification(fmt::format("{}: 2: InitialForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(InitialForms, ", ", true, true)));
-		Utility::Notification(fmt::format("{}: 2: CurrentForms: {}", Utility::num2hex(LastTarget->formID), Utility::GetFormIDsFromVector(CurrentForms, ", ", true, true)));
 		LastTarget = nullptr;
 	}
 
@@ -208,16 +215,21 @@ namespace Main
 		return SFSE::WinAPI::GetKeyState(Config::GetStrippingKeyNumber()) & 0x8000;
 	}
 
+	void StrippingArmorAlt(RE::TESObjectREFR* obj, std::string itemFormID)
+	{
+		if (obj == nullptr)
+			return;
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMeAlt\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+			obj->formID, Utility::num2hex(obj->formID), itemFormID, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));
+	}
+
 	void StrippingArmor(RE::TESObjectREFR* obj)
 	{
 		if (obj == nullptr)
 			return;
 		bool bForced = RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu");
-		Utility::Notification(fmt::format("in Undress: bForced:{}", bForced));
-
-		Utility::ExecuteCommandString(fmt::format("prid {}", Utility::num2hex(obj->formID)));
-		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\"", 
-			obj->formID, bForced, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));		
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"", 
+			obj->formID, Utility::num2hex(obj->formID), bForced, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));		
 	}
 }
 

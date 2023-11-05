@@ -1,4 +1,3 @@
-#pragma once
 #include "Utility.h"
 
 namespace Utility
@@ -55,77 +54,19 @@ namespace Utility
 		return value & (1 << slot);
 	}
 
-	std::vector<int> GetArmorFormIDs(RE::TESObjectREFR* actor, bool isEquipped)
-	{
-		SlotList.clear();
-		if (actor == nullptr)
-			return SlotList;
-
-		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			if (item.object->IsArmor())
-				SlotList.push_back(item.object->formID);
-			return RE::BSContainer::ForEachResult::kContinue;
-		};
-
-		if (isEquipped) {
-			actor->ForEachEquippedItem(scanner);
-		} else {
-			actor->ForEachInventoryItem(scanner);
-		}
-		//for (auto formID : SlotList) {
-		//	Notification(fmt::format("  item: {}", num2hex(formID)));
-		//}
-		return SlotList;
-	}
-
 	std::vector<RE::TESBoundObject*> GetLootedArmors(RE::TESObjectREFR* actor)
 	{
 		std::vector<RE::TESBoundObject*> result;
 		if (actor == nullptr)
 			return result;
 		
-		auto armors = GetEquipmentCountPair(actor);
-		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
+		auto armorMap = CollectInventoryItems(actor, "ARMOR");
+		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			if (itr->second != 1 || !actor->IsObjectEquipped(itr->first))
 				continue;
 			result.push_back(itr->first);
 		}
 		return result;
-
-		//ArmorList.clear();
-		//if (actor == nullptr)
-		//	return ArmorList;
-		//std::vector<RE::TESBoundObject*> result;
-		//CurrentActor = actor;
-		//auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-		//	if (item.object->IsArmor()) {
-		//		if (GetEquipmentStackCount(item) == 1) {
-		//			ArmorList.push_back(item.object);
-		//		}
-		//	}
-		//	return RE::BSContainer::ForEachResult::kContinue;
-		//};
-		//actor->ForEachEquippedItem(scanner);
-		//return ArmorList;
-	}
-
-	void ReadyForLoot(RE::TESObjectREFR* actor)
-	{
-		if (actor == nullptr)
-			return;
-		Notification(fmt::format("ReadyForLoot: Start:  {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-		CurrentActor = actor;
-		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			if (item.object->IsArmor()) {
-				if (GetEquipmentStackCount(item) == 1) {
-					ExecuteCommandStringOnFormID(CurrentActor->formID, fmt::format("additem {} 1", num2hex(item.object->formID)));
-				}
-			}
-			return RE::BSContainer::ForEachResult::kContinue;
-		};
-		actor->ForEachEquippedItem(scanner);
-		Notification(fmt::format("ReadyForLoot: Finish: {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-		return;
 	}
 
 	void ReadyForLoot2(RE::TESObjectREFR* actor)
@@ -133,7 +74,7 @@ namespace Utility
 		if (actor == nullptr)
 			return;
 		Notification(fmt::format("ReadyForLoot2: Start:  {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-		auto armorMap = GetEquipmentCountPair(actor);
+		auto armorMap = CollectInventoryItems(actor, "ARMOR");
 		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			int count = itr->second;
 			auto item = itr->first;
@@ -148,53 +89,16 @@ namespace Utility
 		return;
 	}
 
-	void PrintArmorStacks(RE::TESObjectREFR* actor, bool isEquipped)
-	{
-		if (actor == nullptr)
-			return;
-		Notification(fmt::format("  PrintArmorStacks: Start:  {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			if (item.object->IsArmor()) {
-				Notification(fmt::format("    item: {}: {}: {}", num2hex(item.object->formID), item.object->GetFormEditorID(), GetEquipmentStackCount(item)));
-			}
-			return RE::BSContainer::ForEachResult::kContinue;
-		};		
-		//if (isEquipped) {
-		//	actor->ForEachEquippedItem(scanner);
-		//} else {
-			actor->ForEachInventoryItem(scanner);
-		//}
-		Notification(fmt::format("  PrintArmorStacks: Finish: {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-	}
-
 	void PrintArmorStacks2(RE::TESObjectREFR* actor)
 	{
 		if (actor == nullptr)
 			return;
 		Notification(fmt::format("  PrintArmorStacks2: Start:  {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-		auto armorMap = GetEquipmentCountPair(actor);
+		auto armorMap = CollectInventoryItems(actor, "ARMOR");
 		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			Notification(fmt::format("  item: {}, count:{}, isEquipped:{}", itr->first->GetFormEditorID(), itr->second, actor->IsObjectEquipped(itr->first))); 
 		}
 		Notification(fmt::format("  PrintArmorStacks2: Finish: {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-	}
-
-	std::unordered_map<RE::TESBoundObject*, int> GetEquipmentCountPair(RE::TESObjectREFR* actor)
-	{
-		EquipmentPair.clear();
-		if (actor == nullptr)
-			return EquipmentPair;
-		//Notification(fmt::format("  GetEquipmentCountPair: Start:  {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-
-		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			if (item.object->IsArmor()) {
-				EquipmentPair[item.object] += GetEquipmentStackCount(item);
-			}
-			return RE::BSContainer::ForEachResult::kContinue;
-		};
-		actor->ForEachInventoryItem(scanner);
-		//Notification(fmt::format("  GetEquipmentCountPair: Finish: {}: {}", num2hex(actor->formID), actor->GetFormEditorID()));
-		return EquipmentPair;
 	}
 
 	int GetEquipmentStackCount(const RE::BGSInventoryItem& item)
@@ -208,114 +112,108 @@ namespace Utility
 		}
 		return sum;
 	}
-	//void GetEquippedArmors(RE::TESObjectREFR* actor)
-	//{
-	//	if (actor == nullptr)
-	//		return;
-	//	CurrentActor = actor;
-	//	auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-	//		if (item.object->IsArmor() && CurrentActor->IsObjectEquipped(item.object)) {
-	//			int sum = 0;
-	//			for (int i = 0; i < item.stacks.size(); i++) {
-	//				sum += item.stacks[i].unk10;
-	//			}
-	//			if (sum == 1) {
-	//				std::string command = fmt::format("{}.additem {} 1", num2hex(CurrentActor->formID), num2hex(item.object->formID));
-	//				ExecuteCommandString(command);
-	//			}
-	//		}
-	//		return RE::BSContainer::ForEachResult::kContinue;
-	//	};
-	//	actor->ForEachEquippedItem(scanner);
-	//	return;
-	//}
 
-	std::vector<int> GetItemFormIDs(RE::TESObjectREFR* actor)
+	std::unordered_map<RE::TESBoundObject*, std::string> GetArmorTypes(RE::TESObjectREFR* actor)
 	{
-		ItemList.clear();
-		if (actor == nullptr)
-			return ItemList;
-		debugCount = 0;
+		Notification("GetArmorTypes Start:");
+		ItemTypesForScanner.clear();
 		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			debugCount++;
-			if (item.object->IsArmor())
-				ItemList.push_back(item.object->formID);
-			bool lockStatus = item.flags.any(RE::BGSInventoryItem::Flag::kEquipStateLocked);
-			bool any1 = item.flags.any(RE::BGSInventoryItem::Flag::kInvShouldEquip);
-			bool any2 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex1);
-			bool any3 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex2);
-			bool any4 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex3);
-			bool any5 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotMask);
-			bool any6 = item.flags.any(RE::BGSInventoryItem::Flag::kTemporary);
-			auto unk24 = item.unk24;
-			//bool bPlayable = item.object->GetPlayable();
-
-			Notification(fmt::format("item:{}, {}", num2hex(item.object->formID), item.object->GetFormEditorID()));
-			Notification(fmt::format("  debugCount\t:{}", debugCount));
-			Notification(fmt::format("  kEquipStateLocked\t:{}", lockStatus));
-			Notification(fmt::format("  kInvShouldEquip\t:{}", any1));
-			Notification(fmt::format("  kSlotIndex1\t:{}", any2));
-			Notification(fmt::format("  kSlotIndex2\t:{}", any3));
-			Notification(fmt::format("  kSlotIndex3\t:{}", any4));
-			Notification(fmt::format("  kSlotMask\t:{}", any5));
-			Notification(fmt::format("  kTemporary\t:{}", any6));
-			Notification(fmt::format("  unk24\t:{}", unk24));
-			if (!item.stacks.empty()) {
-				for (int i = 0; i < item.stacks.size(); i++) {
-					Notification(fmt::format("    {}:unk10:{}", i, item.stacks[i].unk10));
-					item.stacks[i].extra->IncRef();
+			if (item.object->IsArmor()) {
+				if (IsDummySuits(item)) {
+					return RE::BSContainer::ForEachResult::kContinue;
 				}
+				ItemTypesForScanner[item.object] = GetArmorType(item);
+				//if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBody")) {
+				//	Notification(fmt::format("  item:{} is spacesuit", num2hex(item.object->formID)));
+				//	ItemTypesForScanner[item.object] = "Spacesuit";
+				//} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBackpack")) {
+				//	Notification(fmt::format("  item:{} is backpack", num2hex(item.object->formID)));
+				//	ItemTypesForScanner[item.object] = "Backpack";
+				//} else {
+				//	ItemTypesForScanner[item.object] = "";
+				//}
+					//if (HasDontStripKeyword(item)) {
+						//if (item.instanceData->GetKeywordData()->ContainsKeywordString("DontStripThis")) {
+					//skip
+				//} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBody")) {
+				//	Notification(fmt::format("  item:{} is spacesuit", num2hex(item.object->formID)));
+				//	ItemTypesForScanner[item.object] = "Spacesuit";
+				//} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBackpack")) {
+				//	Notification(fmt::format("  item:{} is backpack", num2hex(item.object->formID)));
+				//	ItemTypesForScanner[item.object] = "Backpack";
+				//} else {
 			}
-			//Notification(fmt::format("  GetPlayable\t:{}", bPlayable));
+
 			return RE::BSContainer::ForEachResult::kContinue;
 		};
-
-		actor->ForEachInventoryItem(scanner);
-		//for (auto formID : SlotList) {
-		//	Notification(fmt::format("  item: {}", num2hex(formID)));
-		//}
-		return ItemList;		
+		actor->ForEachEquippedItem(scanner);
+		//actor->ForEachInventoryItem(scanner);
+		Notification("GetArmorTypes Finish:");
+		return ItemTypesForScanner;
 	}
 
-	std::unordered_map<int, RE::TESBoundObject*> GetArmorFormIDPairs(RE::TESObjectREFR* actor, bool isEquipped)
+	std::string GetArmorType(const RE::BGSInventoryItem& item)
 	{
-		SlotPair.clear();
-		if (actor == nullptr)
-			return SlotPair;
-		CurrentActor = actor;
-			
-		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			if (item.object->IsArmor() && CurrentActor->IsObjectEquipped(item.object))
-				SlotPair[item.object->formID] = item.object;
-			return RE::BSContainer::ForEachResult::kContinue;
-		};
-
-		if (isEquipped) {
-			actor->ForEachEquippedItem(scanner);
-		} else {
-			actor->ForEachInventoryItem(scanner);
-		}
-		return SlotPair;
-	}
-
-	std::vector<int> GetUnequippedFormID(std::vector<int> lastVector, std::vector<int> currentVector)
-	{
-		std::vector<int> diff;
-		auto             currentMap = Vector2Map(currentVector);
-		for (int num : lastVector) {
-			if (currentMap.find(num) != currentMap.end())
-				continue;
-			diff.push_back(num);
-		}
-	}
-
-	std::unordered_map<int, bool> Vector2Map(std::vector<int> vector)
-	{
-		std::unordered_map<int, bool> result;
-		for (int num : vector) {
-			result[num] = true;
-		}
+		std::string result = "";
+		auto        slotNum = item.object->GetFilledSlots();
+		auto        slotNum2 = item.object->GetFilledSlotsImpl();
+		auto        name = item.object->GetFormEditorID();
+		auto        objectTypeName = item.object->GetObjectTypeName();
+		//auto        desirability = item.object->GetDesirability();
+		//Notification(fmt::format("  item: {}: slotNum={}, slotNum2={}, objectTypeName={}, desirability={}", name, slotNum, slotNum2, objectTypeName, desirability));
+		Notification(fmt::format("  item: {}: slotNum={}, slotNum2={}, objectTypeName={}", name, slotNum, slotNum2, objectTypeName));
 		return result;
+	}
+
+	std::unordered_map<RE::TESBoundObject*, int> CollectInventoryItems(RE::TESObjectREFR* actor, std::string itemType)
+	{
+		Notification("CollectInventoryItems Start:");
+		ItemType = itemType;
+		ItemForScanner.clear();
+
+		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
+			Notification(fmt::format("item: {}: {}", num2hex(item.object->formID), item.object->GetFormEditorID())); 
+			bool isTarget = false;
+			isTarget = (ItemType == "ALL") ? true : isTarget;
+			isTarget = (ItemType == "ARMOR" && item.object->IsArmor()) ? true : isTarget;
+			isTarget = (ItemType == "WEAPON" && item.object->IsWeapon()) ? true : isTarget;
+			isTarget = (ItemType == "BOUNDOBJECT" && item.object->IsBoundObject()) ? true : isTarget;
+			isTarget = (IsDummySuits(item)) ? false : isTarget;
+			if(isTarget)
+				ItemForScanner[item.object] += GetEquipmentStackCount(item);
+			return RE::BSContainer::ForEachResult::kContinue;
+		};
+		actor->ForEachInventoryItem(scanner);
+		Notification("CollectInventoryItems Finish:");
+		return ItemForScanner;
+	}
+
+	bool IsDummySuits(const RE::BGSInventoryItem& item)
+	{
+		std::string sFormIDSuffix = num2hex(item.object->formID, false, true).substr(2,6);
+		return sFormIDSuffix == "000805" || sFormIDSuffix == "000807" || sFormIDSuffix == "000808" || sFormIDSuffix == "000809";
+	}
+
+	bool HasDontStripKeyword(const RE::BGSInventoryItem& item)
+	{
+		Notification(fmt::format("HasDontStripKeyword: start: {}", item.object->GetFormEditorID()));
+		if (item.instanceData == nullptr)
+			return false;
+		auto keywordData = item.instanceData->GetKeywordData();
+		Notification("HasDontStripKeyword: p1");
+		if (keywordData == nullptr)
+			return false;
+		auto keywords = keywordData->keywords;
+		Notification("HasDontStripKeyword: p1.5");
+		if (keywords.empty())
+			Notification("HasDontStripKeyword: p1.6: this keyword form empty");
+		else
+			Notification("HasDontStripKeyword: p1.6: this keyword form NOT empty");
+
+		Notification(fmt::format("item:{}, keywordData->GetNumKeywords:{}", item.object->GetFormEditorID(), keywordData->GetNumKeywords()));
+		bool flg = keywordData->ContainsKeywordString("DontStripThis");
+		Notification("HasDontStripKeyword: p2");
+		return flg;
 	}
 
 	std::string GetFormIDsFromVector(std::vector<int> list, std::string separator, bool quoteOn, bool hexOn)
@@ -330,8 +228,50 @@ namespace Utility
 		return result;
 	}
 
-	std::string num2hex(uint32_t formID)
+	std::string num2hex(uint32_t formID, bool prefixOn, bool paddingOn)
 	{
-		return fmt::format("{:#x}", formID);
+		std::string result = paddingOn ? fmt::format("{:08x}", formID) : fmt::format("{:x}", formID);
+		result = prefixOn ? "0x" + result : result;
+		return result;
 	}
+
+	NumAndType::NumAndType(int _num, std::string _type)
+	{
+		num = _num;
+		type = _type;
+	}
+	//void SurveyInventory(RE::TESObjectREFR* actor)
+	//{
+	//	if (actor == nullptr)
+	//		return;
+	//	int debugCount = 0;
+	//	for (const RE::BGSInventoryItem& item : CollectInventoryItems(actor, "All")) {
+	//		debugCount++;
+	//		bool any0 = item.flags.any(RE::BGSInventoryItem::Flag::kEquipStateLocked);
+	//		bool any1 = item.flags.any(RE::BGSInventoryItem::Flag::kInvShouldEquip);
+	//		bool any2 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex1);
+	//		bool any3 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex2);
+	//		bool any4 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotIndex3);
+	//		bool any5 = item.flags.any(RE::BGSInventoryItem::Flag::kSlotMask);
+	//		bool any6 = item.flags.any(RE::BGSInventoryItem::Flag::kTemporary);
+	//		auto unk24 = item.unk24;
+
+	//		Notification(fmt::format("item:{}, {}", num2hex(item.object->formID), item.object->GetFormEditorID()));
+	//		Notification(fmt::format("  debugCount\t:{}", debugCount));
+	//		Notification(fmt::format("  kEquipStateLocked\t:{}", any0));
+	//		Notification(fmt::format("  kInvShouldEquip\t:{}", any1));
+	//		Notification(fmt::format("  kSlotIndex1\t:{}", any2));
+	//		Notification(fmt::format("  kSlotIndex2\t:{}", any3));
+	//		Notification(fmt::format("  kSlotIndex3\t:{}", any4));
+	//		Notification(fmt::format("  kSlotMask\t:{}", any5));
+	//		Notification(fmt::format("  kTemporary\t:{}", any6));
+	//		Notification(fmt::format("  unk24\t:{}", unk24));
+
+	//		if (!item.stacks.empty()) {
+	//			for (int i = 0; i < item.stacks.size(); i++) {
+	//				Notification(fmt::format("    {}:unk10:{}", i, item.stacks[i].unk10));
+	//			}
+	//		}
+	//	}
+	//}
 }
