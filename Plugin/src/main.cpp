@@ -15,6 +15,7 @@ namespace Config
 {
 	std::string StrippingKey = "U";
 	bool        EffectOn = true;
+	std::string EffectFormID = "0002e54d";
 	bool        AlternativeClothOn = true;
 
 	void ReadIni()
@@ -39,6 +40,12 @@ namespace Config
 		EffectOn = (effect == "True" || effect == "true");
 		Utility::Notification(fmt::format("StrippingArmor: effect={}, EffectOn={}", effect, EffectOn));
 
+		std::string effectFormID = config["Config"]["EffectFormID"].value_or("");
+		if (effectFormID == "")
+			return;
+		EffectFormID = effectFormID;
+		Utility::Notification(fmt::format("StrippingArmor: effectFormID={}, EffectFormID={}", effectFormID, EffectFormID));
+
 		std::string alternativeCloth = config["Config"]["AlternativeCloth"].value_or("");
 		if (alternativeCloth == "")
 			return;
@@ -59,6 +66,11 @@ namespace Config
 	bool GetEffectEnabled()
 	{
 		return EffectOn;
+	}
+
+	std::string GetEffectFormID()
+	{
+		return EffectFormID;
 	}
 
 	bool GetAlternativeClothEnabled()
@@ -113,11 +125,6 @@ namespace Main
 	std::unordered_map<RE::TESBoundObject*, std::string> ArmorTypesMap;
 	std::unordered_map<RE::TESObjectREFR*, bool> ReadyStateMap;
 	std::unordered_map<RE::TESObjectREFR*, int> ArmorClothCombinationMap;
-
-	//std::vector<int>   InitialForms;
-	//std::vector<int>   LastForms;
-	//std::vector<int>   CurrentForms;
-	//std::unordered_map<int, RE::TESBoundObject*> ArmorMap;
 
 	static DWORD MainLoop(void* unused)
 	{
@@ -247,8 +254,8 @@ namespace Main
 	{
 		if (obj == nullptr)
 			return;
-		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMeAlt\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
-			obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[target], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMeAlt\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+			obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[target], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID()));
 		ArmorClothCombinationMap.erase(target);
 
 	}
@@ -258,8 +265,8 @@ namespace Main
 		if (obj == nullptr)
 			return;
 		bool bForced = RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu");
-		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"", 
-			obj->formID, Utility::num2hex(obj->formID), bForced, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled()));		
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"", 
+			obj->formID, Utility::num2hex(obj->formID), bForced, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID()));		
 	}
 }
 

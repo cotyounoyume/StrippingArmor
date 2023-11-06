@@ -235,6 +235,20 @@ namespace Utility
 		return result;
 	}
 
+	uint32_t hex2num(std::string formID)
+	{
+		int intValue;
+		try {
+			intValue = std::stoi(formID, 0, 16);  // ベース16（16進数）で変換
+			return intValue;
+		} catch (const std::invalid_argument& ia) {
+			return 0;
+		} catch (const std::out_of_range& oor) {
+			return 0;
+		}
+		return 0;
+	}
+
 	NumAndType::NumAndType(int _num, std::string _type)
 	{
 		num = _num;

@@ -10,6 +10,7 @@ namespace Utility
 	void ExecuteCommandString(std::string command, std::string displayPrefix = "  ConsoleCommand: ");
 	void ExecuteCommandStringOnFormID(int formID, std::string subCommand);
 	std::string num2hex(uint32_t formID, bool prefixOn = true, bool paddingOn = false);
+	uint32_t hex2num(std::string formID);
 
 	//common
 	bool InGameScene();
