@@ -1,6 +1,8 @@
 #include "DKUtil/Hook.hpp"
 #include "PCH.h"
 #include "Utility.h"
+#include "Config.h"
+#include "Event.h"
 
 // SFSE message listener, use this to do stuff at specific moments during runtime
 void Listener(SFSE::MessagingInterface::Message* message) noexcept
@@ -8,92 +10,6 @@ void Listener(SFSE::MessagingInterface::Message* message) noexcept
 	if (message->type == SFSE::MessagingInterface::kPostLoad) {
 		RE::UI::GetSingleton()->RegisterSink(Events::EventHandlerForMenu::GetSingleton());
 		//RE::UI::GetSingleton()->RegisterSink(Events::EventHandlerForContainer::GetSingleton());
-	}
-}
-
-namespace Config
-{
-	std::string StrippingKey = "U";
-	bool        EffectOn = true;
-	std::string EffectFormID = "0002e54d";
-	bool        AlternativeClothOn = true;
-
-	void ReadIni()
-	{
-		constexpr auto        pathString = L"Data/SFSE/Plugins/StrippingArmor.ini";
-		std::filesystem::path path = std::filesystem::path(pathString);
-		if (!std::filesystem::exists(path))
-			return;
-
-		Utility::Notification(fmt::format("StrippingArmor: path={}", path.string()));
-		auto        config = toml::parse_file(path.string());
-
-		std::string key = config["Config"]["StrippingKey"].value_or("");
-		if (key == "")
-			return;
-		StrippingKey = key;
-		Utility::Notification(fmt::format("StrippingArmor: key={}, keynum={}", key, key.c_str()[0]));
-
-		std::string effect = config["Config"]["Effect"].value_or("");
-		if (effect == "")
-			return;
-		EffectOn = (effect == "True" || effect == "true");
-		Utility::Notification(fmt::format("StrippingArmor: effect={}, EffectOn={}", effect, EffectOn));
-
-		std::string effectFormID = config["Config"]["EffectFormID"].value_or("");
-		if (effectFormID == "")
-			return;
-		EffectFormID = effectFormID;
-		Utility::Notification(fmt::format("StrippingArmor: effectFormID={}, EffectFormID={}", effectFormID, EffectFormID));
-
-		std::string alternativeCloth = config["Config"]["AlternativeCloth"].value_or("");
-		if (alternativeCloth == "")
-			return;
-		AlternativeClothOn = (alternativeCloth == "True" || alternativeCloth == "true");
-		Utility::Notification(fmt::format("StrippingArmor: alternativeCloth={}, AlternativeClothOn={}", alternativeCloth, AlternativeClothOn));
-	}
-
-	std::string GetStrippingKey()
-	{
-		return StrippingKey;
-	}
-
-	char GetStrippingKeyNumber()
-	{
-		return StrippingKey.c_str()[0];
-	}
-
-	bool GetEffectEnabled()
-	{
-		return EffectOn;
-	}
-
-	std::string GetEffectFormID()
-	{
-		return EffectFormID;
-	}
-
-	bool GetAlternativeClothEnabled()
-	{
-		return AlternativeClothOn;
-	}
-}
-
-namespace Events
-{
-	REL::Relocation<__int64 (*)(double, char*, ...)> ExecuteCommand{ REL::ID(166307) };  // From Console-Command-Runner-SF
-
-	RE::BSEventNotifyControl EventHandlerForMenu::ProcessEvent(const RE::MenuOpenCloseEvent& a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
-	{
-		Utility::Notification(fmt::format("Menu: name:{}, opening:{}", a_event.menuName.c_str(), a_event.opening));
-		//for future release
-		return RE::BSEventNotifyControl::kContinue;
-	}
-
-	RE::BSEventNotifyControl EventHandlerForContainer::ProcessEvent(const RE::TESContainerChangedEvent& a_event, RE::BSTEventSource<RE::TESContainerChangedEvent>*)
-	{
-		//for future release
-		return RE::BSEventNotifyControl::kContinue;
 	}
 }
 
@@ -111,8 +27,12 @@ namespace Main
 	void        StateTargetOffCrosshairOn();
 	void        StateTargetOffCrosshairOff();
 	int         GetArmorClothCombination();
+	void        ChangingCorpse(RE::TESObjectREFR* obj);
+	void               ResetParameter();
+	int                GetBitParams();
+	void               RemoveEquipItems();
 	bool        EffectON = false;
-
+	bool               NeedReset = false;
 	RE::TESObjectREFR* target;
 	RE::TESObjectREFR* LastTarget;
 	bool               crosshairrefOn = false;
@@ -120,11 +40,12 @@ namespace Main
 
 	int WaitCount = 0;
 	int WaitCountPlus = 10;
-	int TimePerFrame = 200;
 
 	std::unordered_map<RE::TESBoundObject*, std::string> ArmorTypesMap;
 	std::unordered_map<RE::TESObjectREFR*, bool> ReadyStateMap;
 	std::unordered_map<RE::TESObjectREFR*, int> ArmorClothCombinationMap;
+	std::unordered_map<RE::TESObjectREFR*, bool>         LootedCorpseMap;
+	std::unordered_map<RE::TESObjectREFR*, bool>         StrippingKeyTappedMap;
 
 	static DWORD MainLoop(void* unused)
 	{
@@ -132,7 +53,7 @@ namespace Main
 		Config::ReadIni();
 
 		while (true) {
-			Sleep(TimePerFrame);
+			Sleep(Config::GetTimePerFrame());
 			if (!Utility::InGameScene())
 				continue;
 			UpdateCrosshairTarget();
@@ -151,8 +72,26 @@ namespace Main
 			target = nullptr;
 	}
 
+	void ResetParameter()
+	{
+		Events::NeedReset = false;
+		target = nullptr;
+		LastTarget = nullptr;
+		crosshairrefOn = false;
+		WaitCount = 0;
+		ArmorTypesMap.clear();
+		ReadyStateMap.clear();
+		ArmorClothCombinationMap.clear();
+		LootedCorpseMap.clear();
+		StrippingKeyTappedMap.clear();
+	}
+
 	void StateSelector() 
 	{
+		if (Events::NeedReset) {
+			ResetParameter();
+			return;
+		}
 		if (target == nullptr && !crosshairrefOn) {
 			StateTargetOffCrosshairOff();
 		} else if(target != nullptr && crosshairrefOn) {
@@ -171,52 +110,86 @@ namespace Main
 
 	void StateTargetOnCrosshairOff()
 	{
+		if (target == nullptr) {
+			Utility::Notification("UNKNOWN ERROR: StateTargetOnCrosshairOff: target is nullptr");
+			return;
+		}
 		if (!target->IsActor())
 			return;
 		crosshairrefOn = true;
 		LastTarget = target;
-		if (!target->IsDead(true))
+		ArmorTypesMap = Utility::GetArmorTypes(LastTarget);
+		if (!ArmorClothCombinationMap.contains(LastTarget))
+			ArmorClothCombinationMap[LastTarget] = GetArmorClothCombination();
+
+		if (!LastTarget->IsDead(true))
 			return;
-		ReadyStateMap[target] = true;
+
+		//target is dead
+		ReadyStateMap[LastTarget] = true;
 		//Utility::PrintArmorStacks2(target);
-		Utility::ReadyForLoot2(target);
+		if (!StrippingKeyTappedMap[LastTarget]) {
+			Utility::ReadyForLoot2(LastTarget);
+			if (!LootedCorpseMap.contains(LastTarget))
+				LootedCorpseMap[LastTarget] = false;
+			if (!StrippingKeyTappedMap.contains(LastTarget))
+				StrippingKeyTappedMap[LastTarget] = false;
+			WaitCount = WaitCountPlus;
+		}
 		//Utility::PrintArmorStacks2(target);
-		ArmorTypesMap = Utility::GetArmorTypes(target);
-		WaitCount = WaitCountPlus;
-		if (!ArmorClothCombinationMap.contains(target))
-			ArmorClothCombinationMap[target] = GetArmorClothCombination();
+
 	}
 
 	void StateTargetOnCrosshairOn()
 	{
+		if (LastTarget == nullptr) {
+			Utility::Notification("UNKNOWN ERROR: StateTargetOnCrosshairOn: LastTarget is nullptr");
+			return;
+		}
+
 		if (WaitCount > 0) {
 			WaitCount--;
 			return;
 		}
-		if (target->IsDead(true)) {
-			if (ReadyStateMap[target] == false)
+
+		if (Config::GetUseStrippingKeyToCorpse() && LastTarget->IsDead(true) && IsKeyPressed()) {
+			WaitCount = 10;
+			RemoveEquipItems();
+			Sleep(Config::GetTimePerFrame());
+			StrippingArmor(LastTarget);
+			LootedCorpseMap[LastTarget] = true;
+			StrippingKeyTappedMap[LastTarget] = true;
+		} else if (IsKeyPressed()) {
+			WaitCount = 10;
+			StrippingArmor(LastTarget);			
+		} else {
+			if (!LastTarget->IsDead(true))
 				return;
-			auto armors = Utility::GetLootedArmors(target);
+			if (ReadyStateMap[LastTarget] == false)
+				return;
+			if (StrippingKeyTappedMap[LastTarget])
+				return;
+			//if (LootedCorpseMap.contains(LastTarget) && LootedCorpseMap[LastTarget])
+			//	return;
+
+			auto armors = Utility::GetLootedArmors(LastTarget);
 			for (auto armor : armors) {
 				if (!ArmorTypesMap.contains(armor))
 					continue;
 				Utility::Notification(fmt::format("  Looted:{}: {}: {}", Utility::num2hex(armor->formID), armor->GetFormEditorID(), ArmorTypesMap[armor]));
 
 				if (ArmorTypesMap.contains(armor) && ArmorTypesMap[armor] == "Spacesuit") {
-					StrippingArmorAlt(target, Utility::num2hex(armor->formID));
+					if (LootedCorpseMap.contains(LastTarget))
+						LootedCorpseMap[LastTarget] = true;
+					StrippingArmorAlt(LastTarget, Utility::num2hex(armor->formID));
 					if (Config::GetEffectEnabled())
-						Sleep(100);
-					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
-					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+						Sleep(Config::GetTimePerFrame());
+					Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
+					Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
 				} else {
-					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
-					Utility::ExecuteCommandStringOnFormID(target->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+					Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
+					Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
 				}
-			}
-		} else {
-			if (IsKeyPressed()) {
-				WaitCount = 10;
-				StrippingArmor(target);
 			}
 		}
 	}
@@ -224,9 +197,49 @@ namespace Main
 	void StateTargetOffCrosshairOn()
 	{
 		crosshairrefOn = false;
-		ReadyStateMap.erase(target);
+		if (LastTarget == nullptr) {
+			Utility::Notification("UNKNOWN ERROR: StateTargetOffCrosshairOn: LastTarget is nullptr");
+			return;
+		}
+		ReadyStateMap.erase(LastTarget);
+		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route1"));
+		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route1:{}", LastTarget->GetFormEditorID()));
+		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route1:{}", LastTarget->IsDead(true)));
+		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route1:{}", Config::GetChangingAppearanceOfCorpseEnabled()));
+		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route1:{}", LootedCorpseMap[LastTarget]));
+		Utility::Notification(fmt::format("  isDead:{}, CorpseEnabled:{}, LootedCorpseMap:{}", LastTarget->IsDead(true), Config::GetChangingAppearanceOfCorpseEnabled(), LootedCorpseMap[LastTarget]));
+
+		if (LastTarget->IsDead(true) 
+			&&LastTarget->GetCurrentLocation() == RE::PlayerCharacter::GetSingleton()->GetCurrentLocation()
+			&& Config::GetChangingAppearanceOfCorpseEnabled() 
+			&& LootedCorpseMap.contains(LastTarget) 
+			&& LootedCorpseMap[LastTarget] == true) {
+
+			Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route2"));
+			ChangingCorpse(LastTarget);
+		}
+		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route3"));
+		ArmorClothCombinationMap.erase(LastTarget);
 		LastTarget = nullptr;
 	}
+
+	void RemoveEquipItems()
+	{
+		Utility::Notification(fmt::format("RemoveEquipItem: start"));
+		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
+		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
+			int  count = itr->second;
+			auto item = itr->first;
+
+			Utility::Notification(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
+			//if (count > 1) {
+				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} {}", Utility::num2hex(item->formID), count - 1));
+			//}
+		}
+
+		Utility::Notification(fmt::format("RemoveEquipItem: finish"));
+	}
+
 
 	int GetArmorClothCombination()
 	{
@@ -250,24 +263,57 @@ namespace Main
 		return SFSE::WinAPI::GetKeyState(Config::GetStrippingKeyNumber()) & 0x8000;
 	}
 
-	void StrippingArmorAlt(RE::TESObjectREFR* obj, std::string itemFormID)
+	int GetBitParams()
 	{
-		if (obj == nullptr)
-			return;
-		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMeAlt\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
-			obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[target], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID()));
-		ArmorClothCombinationMap.erase(target);
-
+		//0:bForced, 1:
+		int param = 0;
+		//param += bForced ? 1 : 0;
+		param += Config::GetAlternativeClothEnabled() ? 2 : 0;
+		param += Config::GetChangingAppearanceOfCorpseEnabled() ? 4 : 0;
+		param += Config::GetEffectEnabled() ? 8 : 0;
+		param += Config::GetUseStrippingKeyToCorpse() ? 16 : 0;
+		return param;
 	}
 
 	void StrippingArmor(RE::TESObjectREFR* obj)
 	{
 		if (obj == nullptr)
 			return;
+		int  BitParams = GetBitParams();
 		bool bForced = RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu");
-		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"", 
-			obj->formID, Utility::num2hex(obj->formID), bForced, Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID()));		
+		BitParams += bForced ? 1 : 0;
+		//Function CommonRunMe(string type, string sFormIDDec, int comboPattern, bool alternativeClothEnabled, string effectFormID, int corpseTimer, bool bForced) Global
+		//Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+		//	obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[obj], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID(), false ,bForced));
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.CommonRunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+			"StrippingKey", obj->formID, ArmorClothCombinationMap[obj], BitParams, Config::GetEffectFormID(), Config::GetCorpseTimer()));
 	}
+
+	void StrippingArmorAlt(RE::TESObjectREFR* obj, std::string itemFormID)
+	{
+		if (obj == nullptr)
+			return;
+		int BitParams = GetBitParams();
+		//Function CommonRunMe(string type, string sFormIDDec, int comboPattern, bool alternativeClothEnabled, string effectFormID, int corpseTimer, bool bForced) Global
+		//Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.RunMeAlt\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+		//	obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[obj], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID(), false));
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.CommonRunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+			"Looting", obj->formID, ArmorClothCombinationMap[obj], BitParams, Config::GetEffectFormID(), Config::GetCorpseTimer()));
+	}
+
+	void ChangingCorpse(RE::TESObjectREFR* obj)
+	{
+		if (obj == nullptr)
+			return;
+		int BitParams = GetBitParams();
+		//Function CommonRunMe(string type, string sFormIDDec, int comboPattern, bool alternativeClothEnabled, string effectFormID, int corpseTimer, bool bForced) Global
+		//Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.ChangingCorpse\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+		//	obj->formID, Utility::num2hex(obj->formID), ArmorClothCombinationMap[obj], Config::GetEffectEnabled(), Config::GetAlternativeClothEnabled(), Config::GetEffectFormID(), Config::GetChangingAppearanceOfCorpseEnabled(), Config::GetCorpseTimer()));
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.CommonRunMe\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
+			"ChangingCorpse", obj->formID, ArmorClothCombinationMap[obj], BitParams, Config::GetEffectFormID(), Config::GetCorpseTimer()));
+		LootedCorpseMap.erase(obj);
+	}
+
 }
 
 DLLEXPORT bool SFSEAPI SFSEPlugin_Load(const SFSE::LoadInterface* a_sfse)
