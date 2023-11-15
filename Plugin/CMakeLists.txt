@@ -37,6 +37,7 @@ source_group(
 )
 
 # dependencies
+set(USING_VCPKG TRUE)
 find_package(spdlog CONFIG REQUIRED)
 find_dependency_path(DKUtil include/DKUtil/Logger.hpp)
 find_dependency_path(CommonLibSF CommonLibSF/include/SFSE/SFSE.h)
@@ -51,7 +52,7 @@ add_library(
 		${CMAKE_CURRENT_BINARY_DIR}/version.rc
 		.clang-format
 		vcpkg.json
- "src/Utility.h" "src/Utility.cpp")
+ "src/Utility.h" "src/Utility.cpp" "src/Config.cpp" "src/Config.h" "src/Event.cpp")
 
 # include dir
 target_include_directories(

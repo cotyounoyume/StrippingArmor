@@ -23,6 +23,7 @@ namespace Utility
 	inline std::string                                   ItemType;
 	int                                                 GetEquipmentStackCount(const RE::BGSInventoryItem& item);
 	std::unordered_map<RE::TESBoundObject*, int>        CollectInventoryItems(RE::TESObjectREFR* actor, std::string itemType);
+	std::unordered_map<RE::TESBoundObject*, int>                 CollectEquipItems(RE::TESObjectREFR* actor, std::string itemType);
 	std::unordered_map<RE::TESBoundObject*, std::string> GetArmorTypes(RE::TESObjectREFR* actor);
 	std::string                                                  GetArmorType(const RE::BGSInventoryItem& item);
 

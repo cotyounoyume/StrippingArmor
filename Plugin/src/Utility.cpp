@@ -166,6 +166,29 @@ namespace Utility
 		return result;
 	}
 
+	std::unordered_map<RE::TESBoundObject*, int> CollectEquipItems(RE::TESObjectREFR* actor, std::string itemType)
+	{
+		//Notification("CollectInventoryItems Start:");
+		ItemType = itemType;
+		ItemForScanner.clear();
+
+		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
+			//Notification(fmt::format("item: {}: {}", num2hex(item.object->formID), item.object->GetFormEditorID()));
+			bool isTarget = false;
+			isTarget = (ItemType == "ALL") ? true : isTarget;
+			isTarget = (ItemType == "ARMOR" && item.object->IsArmor()) ? true : isTarget;
+			isTarget = (ItemType == "WEAPON" && item.object->IsWeapon()) ? true : isTarget;
+			isTarget = (ItemType == "BOUNDOBJECT" && item.object->IsBoundObject()) ? true : isTarget;
+			isTarget = (IsDummySuits(item)) ? false : isTarget;
+			if (isTarget)
+				ItemForScanner[item.object] += GetEquipmentStackCount(item);
+			return RE::BSContainer::ForEachResult::kContinue;
+		};
+		actor->ForEachEquippedItem(scanner);
+		//Notification("CollectInventoryItems Finish:");
+		return ItemForScanner;
+	}
+
 	std::unordered_map<RE::TESBoundObject*, int> CollectInventoryItems(RE::TESObjectREFR* actor, std::string itemType)
 	{
 		//Notification("CollectInventoryItems Start:");
