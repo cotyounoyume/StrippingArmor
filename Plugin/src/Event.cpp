@@ -12,9 +12,22 @@ namespace Events
 		//for future release
 		if (a_event.menuName == "PauseMenu" and a_event.opening) {
 			Config::ReadIni();
+			//SetupForms();
 		}
 		if (a_event.menuName == "LoadingMenu" and a_event.opening) {
 			NeedReset = true;
+		}
+		if (a_event.menuName == "DialogueMenu" and a_event.opening) {
+			//DialogueTarget = RE::PlayerCharacter::GetSingleton()->crosshairRef;
+			bool openstate = RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu");
+			Utility::Notification(fmt::format("Menu: name:{} openstate:{}", a_event.menuName.c_str(), openstate));
+			//Utility::Notification(fmt::format("Menu: openstate:{}", openstate));
+		}
+		if (a_event.menuName == "DialogueMenu" and a_event.opening == false) {
+			//DialogueTarget = nullptr;
+			bool openstate = RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu");
+			//Utility::Notification(fmt::format("Menu: openstate:{}", openstate));
+			Utility::Notification(fmt::format("Menu: name:{} openstate:{}", a_event.menuName.c_str(), openstate));
 		}
 		return RE::BSEventNotifyControl::kContinue;
 	}

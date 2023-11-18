@@ -31,6 +31,8 @@ namespace Utility
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (player == nullptr)
 			return false;
+		if(RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"))
+			return true;
 		if (RE::UI::GetSingleton()->IsMenuOpen("Console"))
 			return false;
 		if (RE::UI::GetSingleton()->IsMenuOpen("PauseMenu") 
