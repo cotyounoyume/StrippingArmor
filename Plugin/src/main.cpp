@@ -43,6 +43,8 @@ namespace Main
 	void        ChangingCorpse(RE::TESObjectREFR* obj);
 	void               ResetParameter();
 	int                GetBitParams();
+	void               State_Dialogue();
+	bool               IsDialogOpen();
 	bool        EffectON = false;
 	bool               NeedReset = false;
 	RE::TESObjectREFR* target;
@@ -77,17 +79,12 @@ namespace Main
 	{
 		Utility::Notification("Main Start");
 		Config::ReadIni();
-		bool atOnce = true;
 
 		while (true) {
 			Sleep(Config::GetTimePerFrame());
 			if (!Utility::InGameScene())
 				continue;
 
-			if (atOnce) {
-				Events::SetupForms();
-				atOnce = false;
-			}
 			UpdateCrosshairTarget();
 			StateSelector();
 		}
@@ -101,11 +98,16 @@ namespace Main
 		if (tmpTarget != nullptr && tmpTarget->IsActor()) {
 			target = tmpTarget;
 			Events::DialogueTarget = target;
-		} else if (Events::DialogueTarget != nullptr && Events::DialogueTarget->IsActor()) {
-			target = Events::DialogueTarget;
+		//} else if (Events::DialogueTarget != nullptr && Events::DialogueTarget->IsActor()) {
+		//	target = Events::DialogueTarget;
 		} else {
 			target = nullptr;
 		}
+	}
+
+	bool IsDialogOpen()
+	{
+		return RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu");
 	}
 
 	void StateSelector() 
@@ -114,7 +116,9 @@ namespace Main
 			ResetParameter();
 			return;
 		}
-		if (target == nullptr && !crosshairrefOn) {
+		if (IsDialogOpen()) {
+			State_Dialogue();
+		} else if (target == nullptr && !crosshairrefOn) {
 			State_Common(false, false);
 		} else if(target != nullptr && crosshairrefOn) {
 			State_Common(true, true);
@@ -177,6 +181,30 @@ namespace Main
 		}
 	}
 
+	void State_Dialogue()
+	{
+		if (!Events::DialogueTarget)
+			return;
+		Utility::Notification(fmt::format("State_Dialogue: {}", Events::DialogueTarget->GetFormEditorID()));
+
+		if (IsKeyPressed() && Events::DialogueTarget != nullptr && Events::DialogueTarget->IsActor()) {
+			Utility::Notification("route1");
+		} else {
+			Utility::Notification("route2");
+			return;
+		}
+		crosshairrefOn = true;
+		LastTarget = Events::DialogueTarget;
+		Utility::Notification(fmt::format("State_Dialogue: DialogueRoute: LastTarget:{}", LastTarget->GetFormEditorID()));
+		ArmorTypesMap = Utility::GetArmorTypes(LastTarget);
+		if (!ArmorClothCombinationMap.contains(LastTarget))
+			ArmorClothCombinationMap[LastTarget] = GetArmorClothCombination();
+
+		WaitCount = 10;
+		DropEquipItems();
+		StrippingArmor(LastTarget);
+	}
+
 	void StateTargetOffCrosshairOff()
 	{
 		return;
@@ -211,6 +239,7 @@ namespace Main
 		Utility::Notification(fmt::format("StateTargetOffCrosshairOn: route3"));
 		ArmorClothCombinationMap.erase(LastTarget);
 		LastTarget = nullptr;
+		Events::DialogueTarget = nullptr;
 	}
 
 	void StateTargetOffCrosshairOn_LivingRoute()
@@ -305,7 +334,9 @@ namespace Main
 
 	void DropEquipItems()
 	{
-		Utility::Notification(fmt::format("DropEquipItems: start"));
+		if (!LastTarget)
+			return;
+		Utility::Notification(fmt::format("DropEquipItems: start: {}", LastTarget->GetFormEditorID()));
 		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
@@ -316,15 +347,13 @@ namespace Main
 				continue;
 			}
 
-			item->SetPlayable(true);
 			Utility::Notification(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
-			//Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("Drop {} {}", Utility::num2hex(item->formID), 1));
 
-			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.DropObjectScript\" \"{}\" \"{}\"",
-				LastTarget->formID, item->formID));
+			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.DropObjectScript\" \"{}\" \"{}\" \"{}\" \"{}\"",
+				LastTarget->formID, item->formID, ArmorClothCombinationMap[LastTarget], GetBitParams()));
 
 		}
-		Utility::Notification(fmt::format("DropEquipItems: finish"));
+		Utility::Notification(fmt::format("DropEquipItems: finish {}", LastTarget->GetFormEditorID()));
 	}
 
 	void RemoveEquipItems(bool leftOne)
@@ -372,7 +401,8 @@ namespace Main
 	{
 		//0:bForced, 1:
 		int param = 0;
-		//param += bForced ? 1 : 0;
+		bool bForced = (RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu") || RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"));
+		param += bForced ? 1 : 0;
 		param += Config::GetAlternativeClothEnabled() ? 2 : 0;
 		param += Config::GetChangingAppearanceOfCorpseEnabled() ? 4 : 0;
 		param += Config::GetEffectEnabled() ? 8 : 0;
