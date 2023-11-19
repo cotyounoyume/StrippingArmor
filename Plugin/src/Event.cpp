@@ -10,12 +10,18 @@ namespace Events
 	{
 		Utility::Notification(fmt::format("Menu: name:{}, opening:{}", a_event.menuName.c_str(), a_event.opening));
 		//for future release
+		if (a_event.menuName == "MainMenu" and !a_event.opening) {
+			mainMenuClosed = true;
+		}
 		if (a_event.menuName == "PauseMenu" and a_event.opening) {
 			Config::ReadIni();
 			//SetupForms();
 		}
-		if (a_event.menuName == "LoadingMenu" and a_event.opening) {
-			NeedReset = true;
+		if (a_event.menuName == "LoadingMenu" and !a_event.opening) {
+			if (mainMenuClosed) {
+				Utility::MakeKeywordMapIfNeeded();
+				NeedReset = true;
+			}
 		}
 		if (a_event.menuName == "DialogueMenu" and a_event.opening) {
 			//DialogueTarget = RE::PlayerCharacter::GetSingleton()->crosshairRef;

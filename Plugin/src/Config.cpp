@@ -54,6 +54,18 @@ namespace Config
 		ChangingAppearanceOfCorpse = (changingAppearanceOfCorpse == "True" || changingAppearanceOfCorpse == "true");
 		Utility::Notification(fmt::format("StrippingArmor: changingAppearanceOfCorpse={}, ChangingAppearanceOfCorpse={}", changingAppearanceOfCorpse, ChangingAppearanceOfCorpse));
 
+		std::string enableDroppingItemsOn = config["Config"]["EnableDroppingItems"].value_or("");
+		if (enableDroppingItemsOn == "")
+			return;
+		EnableDroppingItemsOn = (enableDroppingItemsOn == "True" || enableDroppingItemsOn == "true");
+		Utility::Notification(fmt::format("StrippingArmor: enableDroppingItemsOn={}, EnableDroppingItemsOn={}", enableDroppingItemsOn, EnableDroppingItemsOn));
+
+		std::string canStealDroppedItemOn = config["Config"]["CanStealDroppedItem"].value_or("");
+		if (canStealDroppedItemOn == "")
+			return;
+		CanStealDroppedItemOn = (canStealDroppedItemOn == "True" || canStealDroppedItemOn == "true");
+		Utility::Notification(fmt::format("StrippingArmor: canStealDroppedItemOn={}, CanStealDroppedItemOn={}", canStealDroppedItemOn, CanStealDroppedItemOn));
+
 		std::string corpseTimer = config["Config"]["CorpseTimer"].value_or("");
 		if (corpseTimer == "")
 			return;
@@ -64,6 +76,17 @@ namespace Config
 			CorpseTimer = 5;
 		}
 		Utility::Notification(fmt::format("StrippingArmor: corpseTimer={}, CorpseTimer={}", corpseTimer, CorpseTimer));
+
+		std::string repickTimer = config["Config"]["RePickTimer"].value_or("");
+		if (repickTimer == "")
+			return;
+		try {
+			RePickTimer = stoi(repickTimer);
+		} catch (std::exception const& e) {
+			Utility::Notification(fmt::format("StrippingArmor: Exception in Config.cpp: repickTimer is not number:{}", repickTimer));
+			RePickTimer = 5;
+		}
+		Utility::Notification(fmt::format("StrippingArmor: repickTimer={}, RePickTimer={}", repickTimer, RePickTimer));
 
 		std::string timePerFrame = config["Config"]["TimePerFrame"].value_or("");
 		if (timePerFrame == "")
@@ -117,9 +140,24 @@ namespace Config
 		return CorpseTimer;
 	}
 
+	int GetRePickTimer()
+	{
+		return RePickTimer;
+	}
+
 	bool GetUseStrippingKeyToCorpse()
 	{
 		return UseStrippingKeyToCorpse;
+	}
+
+	bool GetEnableDroppingItemsOn()
+	{
+		return EnableDroppingItemsOn;
+	}
+
+	bool GetCanStealDroppedItemOn()
+	{
+		return CanStealDroppedItemOn;
 	}
 
 	int GetTimePerFrame()
