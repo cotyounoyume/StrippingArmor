@@ -12,6 +12,9 @@ namespace Config
 	inline bool        ChangingAppearanceOfCorpse = true;
 	inline int         CorpseTimer = 5;
 	inline int         TimePerFrame = 50;
+	inline bool        EnableDroppingItemsOn = true;
+	inline int         RePickTimer = 5;
+	inline bool        CanStealDroppedItemOn = false;
 
 	void        ReadIni();
 	std::string GetStrippingKey();
@@ -24,4 +27,7 @@ namespace Config
 	int         GetCorpseTimer();
 	bool        GetUseStrippingKeyToCorpse();
 	int         GetTimePerFrame();
+	int         GetRePickTimer();
+	bool        GetEnableDroppingItemsOn();
+	bool        GetCanStealDroppedItemOn();
 }
