@@ -9,9 +9,9 @@ namespace StrippingArmor
 	void MainLoop();
 
 	bool IsKeyPressed();
-	void DoStrippingArmorPapyrusCommon(std::string scriptMethod, std::string type, RE::TESObjectREFR* targetActor);
-	void StrippingArmor(RE::TESObjectREFR* obj);
-	void StrippingArmorAlt(RE::TESObjectREFR* obj);
+	//void DoStrippingArmorPapyrusCommon(std::string scriptMethod, std::string type, RE::TESObjectREFR* targetActor);
+	//void StrippingArmor(RE::TESObjectREFR* obj);
+	//void StrippingArmorAlt(RE::TESObjectREFR* obj);
 	void UpdateCrosshairTarget();
 	void StateSelector();
 	void MemberChecker();
@@ -35,15 +35,21 @@ namespace StrippingArmor
 	void ChangingCorpseWithKeyword(RE::TESObjectREFR* member);
 	void RemoveCorpseKeywords(RE::TESObjectREFR* member);
 	void ChangingCorpse2(RE::TESObjectREFR* targetActor, int HighOrLow);
+	int  GetHighOrLow(RE::TESObjectREFR* member);
+	RE::TESBoundObject* GetCorpsesuit(RE::TESObjectREFR* member);
+
+	inline std::unordered_map<std::string, RE::BGSKeyword*> KeywordMap;
+	void                                                    MakeKeywordMapIfNeeded();
+	RE::BGSKeyword*                                         GetKeyword(std::string editorID);
 
 	bool               IsTargetValid(bool isLastTarget = false);
 	bool               IsTargetDead(bool isLastTarget = false);
 	void               RemoveEquipItems(bool leftOne = false);
 	int                GetArmorClothCombination();
 	void               DropEquipItems();
-	void               ChangingCorpse(RE::TESObjectREFR* obj);
+	//void               ChangingCorpse(RE::TESObjectREFR* obj);
 	void               ResetParameter();
-	int                GetBitParams();
+	//int                GetBitParams();
 	void               State_Dialogue();
 	bool               IsDialogOpen();
 

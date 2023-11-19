@@ -372,10 +372,26 @@ namespace StrippingArmor
 	{
 		if (member == nullptr)
 			return false;
+		//auto scriptMethod = "StrippingArmorWithKeyword";
 		bool isReadyCandidate = member->HasKeyword(GetKeyword("SACandidateCheckReady"));
 		bool isReadyCorpse = member->HasKeyword(GetKeyword("SACorpseCheckReady"));
+		//bool conditionOK = member->HasKeyword(GetKeyword("SAConditionOK"));
 		bool breathableOK = member->HasKeyword(GetKeyword("SABreathableOK"));
-
+		//bool byKey = member->HasKeyword(GetKeyword("SACandidateCheckByKey"));
+		//bool byLoot = member->HasKeyword(GetKeyword("SACandidateCheckByLoot"));
+		//bool conditionNG = member->HasKeyword(Utility::GetKeyword("SAConditionNG"));
+		//bool breathableNG = member->HasKeyword(Utility::GetKeyword("SABreathableNG"));
+		//bool isEtc = member->HasKeyword(Utility::GetKeyword("SADetailEtc"));
+		//bool isSleeping = member->HasKeyword(Utility::GetKeyword("SADetailSleeping"));
+		//bool isBleedingOut = member->HasKeyword(Utility::GetKeyword("SADetailBleedingOut"));
+		//bool isCommanded = member->HasKeyword(Utility::GetKeyword("SADetailCommanded"));
+		//bool isUnconscious = member->HasKeyword(Utility::GetKeyword("SADetailUnconscious"));
+		//Utility::Notification(fmt::format("  IsBreathable: {}: isReady:{}, conditionOK:{}, conditionNG:{}, isEtc:{}, isSleeping:{}, isBleedingOut:{}, isCommanded:{}, isUnconscious:{}",
+		//	member->GetFormEditorID(), isReady, conditionOK, conditionNG, isEtc, isSleeping, isBleedingOut, isCommanded, isUnconscious));
+		//Utility::Notification(fmt::format("  IsBreathable: {}: breathableOK:{}, breathableNG:{}, byKey:{}, byLoot:{}",
+		//	member->GetFormEditorID(), breathableOK, breathableNG, byKey, byLoot));
+		
+		//if (isReady && conditionOK && breathableOK)
 		if (isReadyCandidate || isReadyCorpse) {
 			if (breathableOK)
 				return true;
@@ -412,10 +428,10 @@ namespace StrippingArmor
 
 	int GetHighOrLow(RE::TESObjectREFR* member)
 	{
-		int HighOrLow = 0;
 		if (!IsReadyForCorpse(member))
-			return HighOrLow;
+			return 0;
 
+		int HighOrLow = 0;
 		if (MCHasKeyword(member, "SATemparetureLow")) {
 			HighOrLow = -1;
 		} else if (MCHasKeyword(member, "SATemparetureHigh")) {
@@ -538,14 +554,14 @@ namespace StrippingArmor
 	RE::TESBoundObject* GetCorpsesuit(RE::TESObjectREFR* member)
 	{
 		if (member == nullptr)
-			return nullptr;
+			return;
 
 		bool altCloth = Config::GetAlternativeClothEnabled();
 		int  HighOrLow = GetHighOrLow(member);
 
 		info(fmt::format("EquipCorpsesuit: start: {}, altCloth:{}, HighOrLow:{}", member->GetFormEditorID(), altCloth, HighOrLow));
 		if (HighOrLow == 0)
-			return nullptr;
+			return;
 
 		std::string editorID = "Dummy_Corpse";
 		editorID += (HighOrLow == 1) ? "Dusty" : "Frozen";
@@ -554,6 +570,8 @@ namespace StrippingArmor
 
 		auto armor = Utility::GetArmorFromString(editorID);
 		return armor;
+		//Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armor->formID)));
+		//info(fmt::format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
 	}
 
 	int GetArmorClothCombination()
@@ -584,6 +602,49 @@ namespace StrippingArmor
 			WaitCount = WaitCountPlus;
 		return result;
 	}
+
+	//int GetBitParams()
+	//{
+	//	//0:bForced, 1:
+	//	int  param = 0;
+	//	bool bForced = (RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu") || RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"));
+	//	param += bForced ? 1 : 0;
+	//	param += Config::GetAlternativeClothEnabled() ? 2 : 0;
+	//	param += Config::GetChangingAppearanceOfCorpseEnabled() ? 4 : 0;
+	//	param += Config::GetEffectEnabled() ? 8 : 0;
+	//	param += Config::GetUseStrippingKeyToCorpse() ? 16 : 0;
+	//	param += Config::GetEffectForCorpseEnabled() ? 32 : 0;
+	//	return param;
+	//}
+
+	//void DoStrippingArmorPapyrusCommon(std::string scriptMethod, std::string type, RE::TESObjectREFR* targetActor)
+	//{
+	//	if (targetActor == nullptr)
+	//		return;
+	//	std::string params = fmt::format("\"{}\" \"{}\" \"{}\" \"{}\" \"{}\"", 
+	//		targetActor->formID,
+	//		ArmorClothCombinationMap[targetActor], 
+	//		GetBitParams(), 
+	//		Config::GetEffectFormID(), 
+	//		Config::GetCorpseTimer());
+	//	Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.{}\" {} {}", scriptMethod, type, params));
+	//}
+
+	//void StrippingArmor(RE::TESObjectREFR* targetActor)
+	//{
+	//	DoStrippingArmorPapyrusCommon("CommonRunMe", "StrippingKey", targetActor);
+	//}
+
+	//void StrippingArmorAlt(RE::TESObjectREFR* targetActor)
+	//{
+	//	DoStrippingArmorPapyrusCommon("CommonRunMe", "Looting", targetActor);
+	//}
+
+	//void ChangingCorpse(RE::TESObjectREFR* targetActor)
+	//{
+	//	DoStrippingArmorPapyrusCommon("CommonRunMe", "ChangingCorpse", targetActor);
+	//	LootedCorpseMap.erase(targetActor);
+	//}
 
 	void ChangingCorpse2(RE::TESObjectREFR* targetActor, int HighOrLow)
 	{

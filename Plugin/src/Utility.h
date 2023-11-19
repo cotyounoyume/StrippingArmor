@@ -16,9 +16,6 @@ namespace Utility
 	bool InGameScene();
 	std::vector<int> DecomposeSlot(uint32_t value);
 	bool HasSlot(uint32_t value, int slot);
-	inline std::unordered_map<std::string, RE::BGSKeyword*> KeywordMap;
-	void                                                    MakeKeywordMapIfNeeded();
-	RE::BGSKeyword*                                         GetKeyword(std::string editorID); 
 	RE::BGSKeyword*                                         GetKeywordFromString(std::string editorID); 
 	RE::TESBoundObject*                                     GetArmorFromString(std::string editorID);
 
