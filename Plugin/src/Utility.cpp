@@ -63,65 +63,6 @@ namespace Utility
 		return value & (1 << slot);
 	}
 
-	void MakeKeywordMapIfNeeded()
-	{
-		Utility::Notification(fmt::format("MakeKeywordMapIfNeeded: start: KeywordMap:{}", KeywordMap.size()));
-
-		//std::string formID = "";
-		//RE::TESForm* form = nullptr;
-		//formID = "Clothes_Andreja_NOTPLAYABLE";
-		//form = RE::TESForm::LookupByEditorID(formID.c_str());
-		//Utility::Notification(fmt::format("try to get: {}", formID));
-		//if (!form) {
-		//	Utility::Notification(fmt::format("form: {} was not found.", formID));
-		//}
-
-		//formID = "SACandidateCheckReady";
-		//form = RE::TESForm::LookupByEditorID(formID.c_str());
-		//Utility::Notification(fmt::format("try to get: {}", formID));
-		//if (!form) {
-		//	Utility::Notification(fmt::format("form: {} was not found.", formID));
-		//}
-
-		if (!KeywordMap.size() == 0)
-			return;
-		std::vector<std::string> list = {
-			"SACandidateCheckReady",
-			"SACorpseCheckReady",
-			"SADontStripThis",
-			"SANeedDummysuit",
-			"SAConditionNG",
-			"SAConditionOK",
-			"SADetailSleeping",
-			"SADetailUnconscious",
-			"SADetailBleedingOut",
-			"SADetailCommanded",
-			"SADetailEtc",
-			"SATemparetureNormal",
-			"SATemparetureLow",
-			"SATemparetureHigh",
-			"SACorpseNormal",
-			"SACorpseFrozen",
-			"SACorpseDusty",
-			"SABreathableNG",
-			"SABreathableOK",
-			"SACandidateCheckByKey",
-			"SACandidateCheckByLoot"
-		};
-		Utility::Notification(fmt::format("MakeKeywordMapIfNeeded: process: list:{}", list.size()));
-		for (std::string item : list) {
-			KeywordMap[item] = GetKeywordFromString(item);
-		}
-		Utility::Notification(fmt::format("MakeKeywordMapIfNeeded: process end:"));
-	}
-
-	RE::BGSKeyword* GetKeyword(std::string editorID)
-	{
-		if(!KeywordMap.contains(editorID))
-			return nullptr;
-		return KeywordMap[editorID];
-	}
-
 	RE::BGSKeyword* GetKeywordFromString(std::string editorID)
 	{
 		auto form = RE::TESForm::LookupByEditorID(editorID.c_str());

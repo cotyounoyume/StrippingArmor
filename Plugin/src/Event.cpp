@@ -1,6 +1,4 @@
-#pragma once
 #include "Event.h"
-#include "Config.h"
 
 namespace Events
 {
@@ -19,7 +17,7 @@ namespace Events
 		}
 		if (a_event.menuName == "LoadingMenu" and !a_event.opening) {
 			if (mainMenuClosed) {
-				Utility::MakeKeywordMapIfNeeded();
+				StrippingArmor::MakeKeywordMapIfNeeded();
 				NeedReset = true;
 			}
 		}

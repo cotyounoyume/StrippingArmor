@@ -1,6 +1,8 @@
 #pragma once
 #include "Utility.h"
 #include "PCH.h"
+#include "Config.h"
+#include "StrippingArmor.h"
 
 template <class T>
 class ISingleton
