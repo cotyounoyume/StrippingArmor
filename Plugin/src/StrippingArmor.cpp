@@ -406,7 +406,7 @@ namespace StrippingArmor
 			}
 			AddKeywordForCorpses(member);
 		}
-
+		DoEffectShader(member);
 		RemoveCandidateKeywords(member);
 	}
 
@@ -533,6 +533,16 @@ namespace StrippingArmor
 		auto armor = Utility::GetArmorFromString(editorID);
 		Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armor->formID)));
 		info(fmt::format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
+
+
+	}
+
+	void DoEffectShader(RE::TESObjectREFR* member)
+	{
+		float timer = 0.5;
+		//Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("pms {} 1", Config::GetEffectFormID())); 
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.PlayEffect\" \"{}\" \"{}\" \"{}\"", member->formID, Config::GetEffectFormID(), timer));
+
 	}
 
 	RE::TESBoundObject* GetCorpsesuit(RE::TESObjectREFR* member)
