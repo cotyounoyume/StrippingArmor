@@ -37,6 +37,7 @@ namespace StrippingArmor
 	void ChangingCorpse2(RE::TESObjectREFR* targetActor, int HighOrLow);
 	int  GetHighOrLow(RE::TESObjectREFR* member);
 	RE::TESBoundObject* GetCorpsesuit(RE::TESObjectREFR* member);
+	void                                                    DoEffectShader(RE::TESObjectREFR* member);
 
 	inline std::unordered_map<std::string, RE::BGSKeyword*> KeywordMap;
 	void                                                    MakeKeywordMapIfNeeded();

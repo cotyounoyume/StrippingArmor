@@ -18,25 +18,25 @@ namespace Config
 		StrippingKey = key;
 		Utility::Notification(fmt::format("StrippingArmor: key={}, keynum={}", key, key.c_str()[0]));
 
-		std::string effect = config["Config"]["EffectShaderForStripping"].value_or("");
+		std::string effect = config["Config"]["EffectShaderForStrippingOn"].value_or("");
 		if (effect == "")
 			return;
 		EffectOn = (effect == "True" || effect == "true");
 		Utility::Notification(fmt::format("StrippingArmor: effect={}, EffectOn={}", effect, EffectOn));
 
-		std::string effectForCorpse = config["Config"]["EffectShaderForChangingCorpse"].value_or("");
+		std::string effectForCorpse = config["Config"]["EffectShaderForChangingCorpseOn"].value_or("");
 		if (effectForCorpse == "")
 			return;
 		EffectForCorpseOn = (effectForCorpse == "True" || effectForCorpse == "true");
 		Utility::Notification(fmt::format("StrippingArmor: effectForCorpse={}, EffectForCorpse={}", effect, EffectForCorpseOn));
 
-		std::string effectFormID = config["Config"]["EffectFormID"].value_or("");
+		std::string effectFormID = config["Config"]["EffectShaderFormIDForStripping"].value_or("");
 		if (effectFormID == "")
 			return;
 		EffectFormID = effectFormID;
 		Utility::Notification(fmt::format("StrippingArmor: effectFormID={}, EffectFormID={}", effectFormID, EffectFormID));
 
-		std::string alternativeCloth = config["Config"]["AlternativeCloth"].value_or("");
+		std::string alternativeCloth = config["Config"]["AlternativeClothOn"].value_or("");
 		if (alternativeCloth == "")
 			return;
 		AlternativeClothOn = (alternativeCloth == "True" || alternativeCloth == "true");
@@ -77,7 +77,7 @@ namespace Config
 		}
 		Utility::Notification(fmt::format("StrippingArmor: corpseTimer={}, CorpseTimer={}", corpseTimer, CorpseTimer));
 
-		std::string repickTimer = config["Config"]["RePickTimer"].value_or("");
+		std::string repickTimer = config["Config"]["TakingBackEquipmentTimer"].value_or("");
 		if (repickTimer == "")
 			return;
 		try {
