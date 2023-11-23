@@ -539,6 +539,8 @@ namespace StrippingArmor
 
 	void DoEffectShader(RE::TESObjectREFR* member)
 	{
+		if (!Config::GetEffectEnabled())
+			return;
 		float timer = 0.5;
 		//Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("pms {} 1", Config::GetEffectFormID())); 
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.PlayEffect\" \"{}\" \"{}\" \"{}\"", member->formID, Config::GetEffectFormID(), timer));

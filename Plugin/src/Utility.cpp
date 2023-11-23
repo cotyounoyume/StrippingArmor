@@ -26,6 +26,18 @@ namespace Utility
 			logger::info("{}", message);
 	}
 
+	void Notification(std::string message, bool flg)
+	{
+		bool NotificationOn = flg;
+		bool InfoOn = false;
+		//NotificationOn = true;
+		InfoOn = true;
+		if (NotificationOn)
+			RE::DebugNotification(message.c_str());
+		if (InfoOn)
+			logger::info("{}", message);
+	}
+
 	bool InGameScene()
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
@@ -143,7 +155,8 @@ namespace Utility
 		if (item.object->IsArmor()) {
 			for (int i = 0; i < item.stacks.size(); i++) {
 				//Notification(fmt::format("  item: {}: {}: stacks[{}].unk10={}", num2hex(item.object->formID), item.object->GetFormEditorID(), i, item.stacks[i].unk10));
-				sum += item.stacks[i].unk10;
+				sum += item.stacks[i].count;
+				//sum += item.stacks[i].unk10;
 			}
 		}
 		return sum;

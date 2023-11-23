@@ -6,8 +6,9 @@ namespace Utility
 	//common
 	inline REL::Relocation<__int64 (*)(double, char*, ...)> ExecuteCommand{ REL::ID(166307) };  // From Console-Command-Runner-SF
 
-	void Notification(std::string message);
-	void ExecuteCommandString(std::string command, std::string displayPrefix = "  ConsoleCommand: ");
+	void        Notification(std::string message);
+	void        Notification(std::string message, bool flg);
+	void        ExecuteCommandString(std::string command, std::string displayPrefix = "  ConsoleCommand: ");
 	void ExecuteCommandStringOnFormID(int formID, std::string subCommand);
 	std::string num2hex(uint32_t formID, bool prefixOn = true, bool paddingOn = false);
 	uint32_t hex2num(std::string formID);
