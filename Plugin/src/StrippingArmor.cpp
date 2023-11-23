@@ -346,7 +346,9 @@ namespace StrippingArmor
 
 	void AddKeywordForCandidates(RE::TESObjectREFR* member, bool byKey)
 	{
-		bool bForced = member->IsDead(true) || (RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu") || RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"));
+		bool bForced = member->IsDead(true) 
+			|| (RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu") && Config::GetConditionPickingPocketOn()) 
+			|| (RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu") && Config::GetConditionTalkingOn());
 
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.AddKeywordForCandidates\" \"{}\" \"{}\" \"{}\"",
 			member->formID, bForced, byKey));
@@ -400,10 +402,30 @@ namespace StrippingArmor
 		return false;
 	}
 
+	bool CheckConditionOK(RE::TESObjectREFR* member)
+	{
+		bool result = false;
+		if (member->HasKeyword(GetKeyword("SADetailEtc")))
+			result = true;
+		if (member->HasKeyword(GetKeyword("SADetailSleeping")) && Config::GetConditionSleepingOn())
+			result = true;
+		if (member->HasKeyword(GetKeyword("SADetailUnconscious")) && Config::GetConditionUnconsciousOn())
+			result = true;
+		if (member->HasKeyword(GetKeyword("SADetailBleedingOut")) && Config::GetConditionBleedingOutOn())
+			result = true;
+		if (member->HasKeyword(GetKeyword("SADetailCommanded")) && Config::GetConditionIsCommandedOn())
+			result = true;
+		return result;
+	}
+
 	void StrippingArmorWithKeyword(RE::TESObjectREFR* member)
 	{
 		if (!IsReady(member))
-				return;
+			return;
+		if (!CheckConditionOK(member)) {
+			RemoveCandidateKeywords(member);
+			return;
+		}
 
 		ArmorTypesMap = Utility::GetArmorTypes(member);
 		if (!ArmorClothCombinationMap.contains(member))
@@ -442,8 +464,9 @@ namespace StrippingArmor
 	void ChangingCorpseWithKeyword(RE::TESObjectREFR* member)
 	{
 		if (!IsReadyForCorpse(member))
-				return;
-
+			return;
+		if (!Config::GetChangingAppearanceOfCorpseEnabled())
+			return;
 		int HighOrLow = GetHighOrLow(member);
 		if (HighOrLow == 0)
 				return;
