@@ -2,11 +2,6 @@
 
 namespace StrippingArmor
 {
-	void info(std::string msg)
-	{
-		Utility::Notification(msg);
-	}
-
 	void MainLoop()
 	{
 		Config::ReadIni();
@@ -20,6 +15,28 @@ namespace StrippingArmor
 			StateSelector();
 			MemberChecker();
 		}
+	}
+
+	int GetStrippingArmorIndex()
+	{
+		if (StrippingArmorIndex != 0)
+			return StrippingArmorIndex;
+		StrippingArmorIndex = Utility::GetModIndex(FormIDForModIndex, NameForModIndex);
+		return StrippingArmorIndex;
+	}
+
+	RE::BGSKeyword* GetKeywordFromID(int formID)
+	{
+		if (StrippingArmorIndex == 0)
+			GetStrippingArmorIndex();
+		return Utility::GetKeywordFromID(formID, StrippingArmorIndex);
+	}
+
+	RE::TESBoundObject* GetArmorFromID(int formID)
+	{
+		if (StrippingArmorIndex == 0)
+			GetStrippingArmorIndex();
+		return Utility::GetArmorFromID(formID, StrippingArmorIndex);
 	}
 
 	void ResetParameter()
@@ -75,14 +92,12 @@ namespace StrippingArmor
 	{
 		if (isLastTarget) {
 			if (LastTarget == nullptr || !LastTarget->IsActor()) {
-				//Utility::Notification("UNKNOWN ERROR: IsTargetValid: false");
 				return false;
 			} else {
 				return true;
 			}
 		} else {
 			if (target == nullptr || !target->IsActor()) {
-				//Utility::Notification("UNKNOWN ERROR: IsTargetValid: false");
 				return false;
 			} else {
 				return true;
@@ -134,7 +149,7 @@ namespace StrippingArmor
 		}
 		crosshairrefOn = true;
 		LastTarget = Events::DialogueTarget;
-		Utility::Notification(fmt::format("State_Dialogue: DialogueRoute: LastTarget:{}", LastTarget->GetFormEditorID()));
+		Info(format("State_Dialogue: DialogueRoute: LastTarget:{}", LastTarget->GetFormEditorID()));
 
 		AddKeywordForCandidates(LastTarget, true);
 	}
@@ -230,7 +245,7 @@ namespace StrippingArmor
 		for (auto armor : armors) {
 			if (!ArmorTypesMap.contains(armor))
 				continue;
-			Utility::Notification(fmt::format("  Looted:{}: {}: {}", Utility::num2hex(armor->formID), armor->GetFormEditorID(), ArmorTypesMap[armor]));
+			Info(fmt::format("  Looted:{}: {}: {}", Utility::num2hex(armor->formID), armor->GetFormEditorID(), ArmorTypesMap[armor]));
 
 			if (ArmorTypesMap.contains(armor) && ArmorTypesMap[armor] == "Spacesuit") {
 				if (LootedCorpseMap.contains(LastTarget))
@@ -279,7 +294,7 @@ namespace StrippingArmor
 				continue;
 			}
 			if (!MCHasKeyword(member, "SAConditionNG") && !MCHasKeyword(member, "SAConditionOK")) {
-				Utility::Notification(fmt::format("ERROR: MemberCheckerCandidate: member({}) has SACandidateCheckReady, but with no conditions.", member->GetFormEditorID()));
+				Info(format("ERROR: MemberCheckerCandidate: member({}) has SACandidateCheckReady, but with no conditions.", member->GetFormEditorID()));
 				unlisted.push_back(member);
 				continue;
 			}
@@ -380,7 +395,7 @@ namespace StrippingArmor
 			if (breathableOK)
 				return true;
 		} else {
-			Utility::Notification("ERROR: can't get breathableOK");
+			Info("ERROR: can't get breathableOK");
 		}
 		return false;
 	}
@@ -457,18 +472,18 @@ namespace StrippingArmor
 	{
 		if (!LastTarget)
 			return;
-		Utility::Notification(fmt::format("DropEquipItems: start: {}", LastTarget->GetFormEditorID()));
+		Info(format("DropEquipItems: start: {}", LastTarget->GetFormEditorID()));
 		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
 			auto name = std::string(item->GetFormEditorID());
 			if (name.contains("Crowd")) {
-				Utility::Notification(fmt::format("  Skip. This item is for crowd race.: {}, {}", Utility::num2hex(item->GetFormID()), name));
+				Info(fmt::format("  Skip. This item is for crowd race.: {}, {}", Utility::num2hex(item->GetFormID()), name));
 				continue;
 			}
 
-			Utility::Notification(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
+			Info(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
 
 			std::string scriptName = "UnequipItem2";
 			if (Config::GetEnableDroppingItemsOn()) {
@@ -477,25 +492,25 @@ namespace StrippingArmor
 			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
 				scriptName, LastTarget->formID, item->formID, Config::GetRePickTimer(), Config::GetCanStealDroppedItemOn()));
 		}
-		Utility::Notification(fmt::format("DropEquipItems: finish {}", LastTarget->GetFormEditorID()));
+		Info(format("DropEquipItems: finish {}", LastTarget->GetFormEditorID()));
 	}
 
 	void RemoveEquipItems(bool leftOne)
 	{
-		Utility::Notification(fmt::format("RemoveEquipItem: start"));
+		Info(format("RemoveEquipItem: start"));
 		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
 
-			Utility::Notification(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
+			Info(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
 			Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} {}", Utility::num2hex(item->formID), count - 1));
 			if (leftOne) {
 				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("UnequipItem {}", Utility::num2hex(item->formID)));
 			}
 		}
 
-		Utility::Notification(fmt::format("RemoveEquipItem: finish"));
+		Info(format("RemoveEquipItem: finish"));
 	}
 
 	bool NeedDummysuit(RE::TESObjectREFR* member)
@@ -518,7 +533,7 @@ namespace StrippingArmor
 	{
 		if (member == nullptr)
 			return;
-		info(fmt::format("EquipDummysuit: start: {}", member->GetFormEditorID()));
+		Info(format("EquipDummysuit: start: {}", member->GetFormEditorID()));
 		if (NeedDummysuit(member) == false && Config::GetAlternativeClothEnabled() == false)
 			return;
 
@@ -530,19 +545,20 @@ namespace StrippingArmor
 				editorID = "Dummy_Normal_Spacesuit";
 		}
 
-		auto armor = Utility::GetArmorFromString(editorID);
+		auto armor = GetArmor(editorID);
 		Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armor->formID)));
-		info(fmt::format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
+		Info(format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
 
 
 	}
 
 	void DoEffectShader(RE::TESObjectREFR* member)
 	{
+		if (!Config::GetEffectEnabled())
+			return;
 		float timer = 0.5;
 		//Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("pms {} 1", Config::GetEffectFormID())); 
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.PlayEffect\" \"{}\" \"{}\" \"{}\"", member->formID, Config::GetEffectFormID(), timer));
-
 	}
 
 	RE::TESBoundObject* GetCorpsesuit(RE::TESObjectREFR* member)
@@ -553,7 +569,7 @@ namespace StrippingArmor
 		bool altCloth = Config::GetAlternativeClothEnabled();
 		int  HighOrLow = GetHighOrLow(member);
 
-		info(fmt::format("EquipCorpsesuit: start: {}, altCloth:{}, HighOrLow:{}", member->GetFormEditorID(), altCloth, HighOrLow));
+		Info(format("EquipCorpsesuit: start: {}, altCloth:{}, HighOrLow:{}", member->GetFormEditorID(), altCloth, HighOrLow));
 		if (HighOrLow == 0)
 			return nullptr;
 
@@ -562,9 +578,10 @@ namespace StrippingArmor
 		editorID += (altCloth) ? "Alt_" : "_";
 		editorID += (NeedDummysuit(member)) ? "Spacesuit" : "Clothes";
 
-		auto armor = Utility::GetArmorFromString(editorID);
+		auto armor = GetArmor(editorID);
 		return armor;
 	}
+
 
 	int GetArmorClothCombination()
 	{
@@ -579,7 +596,7 @@ namespace StrippingArmor
 
 		int result = (clothOn) ? 2 : 0;
 		result += (suitOn) ? 1 : 0;
-		Utility::Notification(fmt::format("GetArmorClothCombination: result:{}, clothOn:{}, suitOn:{}", result, clothOn, suitOn));
+		Info(format("GetArmorClothCombination: result:{}, clothOn:{}, suitOn:{}", result, clothOn, suitOn));
 		return result;
 	}
 
@@ -602,6 +619,13 @@ namespace StrippingArmor
 		LootedCorpseMap.erase(targetActor);
 	}
 
+	RE::TESBoundObject* GetArmor(std::string editorID)
+	{
+		if (!ArmorMap.contains(editorID))
+			return nullptr;
+		return ArmorMap[editorID];
+	}
+
 	RE::BGSKeyword* GetKeyword(std::string editorID)
 	{
 		if (!KeywordMap.contains(editorID))
@@ -611,37 +635,101 @@ namespace StrippingArmor
 
 	void MakeKeywordMapIfNeeded()
 	{
-		Utility::Notification(fmt::format("MakeKeywordMapIfNeeded: start: KeywordMap:{}", KeywordMap.size()));
+		Info(format("MakeKeywordMapIfNeeded: start: KeywordMap:{}", KeywordMap.size()));
 
 		if (!KeywordMap.size() == 0)
 			return;
-		std::vector<std::string> list = {
-			"SACandidateCheckReady",
-			"SACorpseCheckReady",
-			"SADontStripThis",
-			"SANeedDummysuit",
-			"SAConditionNG",
-			"SAConditionOK",
-			"SADetailSleeping",
-			"SADetailUnconscious",
-			"SADetailBleedingOut",
-			"SADetailCommanded",
-			"SADetailEtc",
-			"SATemparetureNormal",
-			"SATemparetureLow",
-			"SATemparetureHigh",
-			"SACorpseNormal",
-			"SACorpseFrozen",
-			"SACorpseDusty",
-			"SABreathableNG",
-			"SABreathableOK",
-			"SACandidateCheckByKey",
-			"SACandidateCheckByLoot"
+		//std::vector<std::string> list = {
+		//	"SACandidateCheckReady",
+		//	"SACorpseCheckReady",
+		//	"SADontStripThis",
+		//	"SANeedDummysuit",
+		//	"SAConditionNG",
+		//	"SAConditionOK",
+		//	"SADetailSleeping",
+		//	"SADetailUnconscious",
+		//	"SADetailBleedingOut",
+		//	"SADetailCommanded",
+		//	"SADetailEtc",
+		//	"SATemparetureNormal",
+		//	"SATemparetureLow",
+		//	"SATemparetureHigh",
+		//	"SACorpseNormal",
+		//	"SACorpseFrozen",
+		//	"SACorpseDusty",
+		//	"SABreathableNG",
+		//	"SABreathableOK",
+		//	"SACandidateCheckByKey",
+		//	"SACandidateCheckByLoot"
+		//};
+		std::unordered_map<std::string, int> pairs = {
+			{ "SACandidateCheckReady", 0x827 },
+			{ "SACorpseCheckReady", 0x828 },
+			{ "SADontStripThis", 0x80a },
+			{ "SANeedDummysuit", 0x81c },
+			{ "SAConditionNG", 0x81d },
+			{ "SAConditionOK", 0x822 },
+			{ "SADetailSleeping", 0x823 },
+			{ "SADetailUnconscious", 0x824 },
+			{ "SADetailBleedingOut", 0x825 },
+			{ "SADetailCommanded", 0x826 },
+			{ "SADetailEtc", 0x829 },
+			{ "SATemparetureNormal", 0x821 },
+			{ "SATemparetureLow", 0x820 },
+			{ "SATemparetureHigh", 0x81f },
+			{ "SACorpseNormal", 0x80f },
+			{ "SACorpseFrozen", 0x810 },
+			{ "SACorpseDusty", 0x811 },
+			{ "SABreathableNG", 0x82b },
+			{ "SABreathableOK", 0x82a },
+			{ "SACandidateCheckByKey", 0x82c },
+			{ "SACandidateCheckByLoot", 0x82d },
 		};
-		Utility::Notification(fmt::format("MakeKeywordMapIfNeeded: process: list:{}", list.size()));
-		for (std::string item : list) {
-			KeywordMap[item] = Utility::GetKeywordFromString(item);
+		Info(format("MakeKeywordMapIfNeeded: process: list:{}", pairs.size()));
+		auto form = RE::TESForm::LookupByEditorID("SACandidateCheckReady");
+		if (!form) {
+			Info(format("TEST: LookupByEditorID is inactive"));
+		}		
+
+		for (auto itr = pairs.begin(); itr != pairs.end(); ++itr) {
+			auto key = GetKeywordFromID(itr->second);
+			if (!key) {
+				Info("key is null");
+			}
+			KeywordMap[itr->first] = GetKeywordFromID(itr->second);
 		}
-		Utility::Notification(fmt::format("MakeKeywordMapIfNeeded: process end:"));
+		Info("MakeKeywordMapIfNeeded: process end:");
 	}
+
+	void MakeArmorMapIfNeeded()
+	{
+		Info(format("MakeArmorMapIfNeeded: start: ArmorMap:{}", ArmorMap.size()));
+
+		if (!ArmorMap.size() == 0)
+			return;
+		std::unordered_map<std::string, int> pairs = {
+			{ "Dummy_Normal_Spacesuit", 0x805 },
+			{ "Dummy_NormalAlt_Clothes", 0x807 },
+			{ "Dummy_NormalAlt_Spacesuit", 0x809 },
+			{ "Dummy_CorpseFrozen_Spacesuit", 0x80b },
+			{ "Dummy_CorpseFrozen_Clothes", 0x80c },
+			{ "Dummy_CorpseDusty_Spacesuit", 0x80d },
+			{ "Dummy_CorpseDusty_Clothes", 0x80e },
+			{ "Dummy_CorpseFrozenAlt_Spacesuit", 0x818 },
+			{ "Dummy_CorpseFrozenAlt_Clothes", 0x819 },
+			{ "Dummy_CorpseDustyAlt_Spacesuit", 0x81a },
+			{ "Dummy_CorpseDustyAlt_Clothes", 0x81b },
+		};
+		Info(format("MakeArmorMapIfNeeded: process: list:{}", pairs.size()));
+
+		for (auto itr = pairs.begin(); itr != pairs.end(); ++itr) {
+			auto key = GetArmorFromID(itr->second);
+			if (!key) {
+				Info("armor is null");
+			}
+			ArmorMap[itr->first] = GetArmorFromID(itr->second);
+		}
+		Info("MakeArmorMapIfNeeded: process end:");
+	}
+
 }

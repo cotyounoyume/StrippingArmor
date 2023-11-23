@@ -1,6 +1,5 @@
 #pragma once
-#include "Utility.h"
-#include "PCH.h"
+#include "Common.h"
 #include "Config.h"
 #include "StrippingArmor.h"
 

@@ -19,7 +19,7 @@ namespace Main
 {
 	static DWORD MainLoop(void* unused)
 	{
-		Utility::Notification("Main Start");
+		Info("Main Start");
 		StrippingArmor::MainLoop();
 		return 0;
 	}

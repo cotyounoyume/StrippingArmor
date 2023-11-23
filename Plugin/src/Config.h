@@ -1,5 +1,5 @@
 #pragma once
-#include "Utility.h"
+#include "Common.h"
 
 namespace Config
 {
