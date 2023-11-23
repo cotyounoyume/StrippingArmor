@@ -1,12 +1,15 @@
 #pragma once
-#include "PCH.h"
+#include "Common.h"
 #include "Config.h"
-#include "Utility.h"
 #include "Event.h"
 
 namespace StrippingArmor
 {
 	void MainLoop();
+	inline int StrippingArmorIndex = 0;
+	int        GetStrippingArmorIndex();
+	inline int        FormIDForModIndex = 0x827;
+	inline std::string NameForModIndex = "SACandidateCheckReady";
 
 	bool IsKeyPressed();
 	//void DoStrippingArmorPapyrusCommon(std::string scriptMethod, std::string type, RE::TESObjectREFR* targetActor);
@@ -42,6 +45,11 @@ namespace StrippingArmor
 	inline std::unordered_map<std::string, RE::BGSKeyword*> KeywordMap;
 	void                                                    MakeKeywordMapIfNeeded();
 	RE::BGSKeyword*                                         GetKeyword(std::string editorID);
+	RE::BGSKeyword*                                             GetKeywordFromID(std::string editorID);
+	inline std::unordered_map<std::string, RE::TESBoundObject*> ArmorMap;
+	void                                                        MakeArmorMapIfNeeded();
+	RE::TESBoundObject*                                         GetArmor(std::string editorID);
+	RE::TESBoundObject*                                         GetArmorFromID(std::string editorID);
 
 	bool               IsTargetValid(bool isLastTarget = false);
 	bool               IsTargetDead(bool isLastTarget = false);
