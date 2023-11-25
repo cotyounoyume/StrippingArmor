@@ -57,14 +57,78 @@ namespace Utility
 			return true;
 		if (RE::UI::GetSingleton()->IsMenuOpen("Console"))
 			return false;
-		if (RE::UI::GetSingleton()->IsMenuOpen("PauseMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("FaderMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("LoadingMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("MainMenu")
-			)
+		if (IsMenuOthersOpen())
 			return false;
 
 		return true;
+	}
+
+	bool IsMenuOthersOpen()
+	{
+		if (IsMenuForSystemOpen())
+			return true;
+		if (IsMenuForTerminalOpen())
+			return true;
+		if (IsMenuForTradeOpen())
+			return true;
+		return false;
+	}
+
+	bool IsMenuInGameOpen()
+	{
+		if (RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("WorkshopMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("CursorMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("MonocleMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu")
+			)
+			return true;
+		return false;
+	}
+
+	bool IsMenuForSystemOpen()
+	{
+		if (RE::UI::GetSingleton()->IsMenuOpen("PauseMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("Console") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("FaderMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("LoadingMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("MainMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("GalaxyStarMapMenu")
+			)
+			return true;
+		return false;
+	}
+
+	bool IsMenuForTradeOpen()
+	{
+		if (RE::UI::GetSingleton()->IsMenuOpen("ContainerMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("BarterMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("SpaceshipEditorMenu") 
+			)
+			return true;
+		return false;
+	}
+
+	bool IsMenuForTerminalOpen()
+	{
+		if (RE::UI::GetSingleton()->IsMenuOpen("MissionBoard") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("DataMenu") 
+			|| RE::UI::GetSingleton()->IsMenuOpen("GenesisTerminalMenu") 
+		)
+			return true;
+		return false;
+	}
+
+	bool IsMenuOpen(std::string MenuName, bool DialogueOnly)
+	{
+		if (MenuName != "DialogueMenu" || !DialogueOnly)
+			return RE::UI::GetSingleton()->IsMenuOpen(MenuName);
+
+		//DialogueMenuRoute
+		bool result = RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu");
+		if (IsMenuOthersOpen())
+			result = false;
+		return result;
 	}
 
 	std::vector<int> DecomposeSlot(uint32_t value)

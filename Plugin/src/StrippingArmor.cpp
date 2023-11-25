@@ -64,18 +64,13 @@ namespace StrippingArmor
 		}
 	}
 
-	bool IsDialogOpen()
-	{
-		return RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu");
-	}
-
 	void StateSelector()
 	{
 		if (Events::NeedReset) {
 			ResetParameter();
 			return;
 		}
-		if (IsDialogOpen()) {
+		if (Utility::IsMenuOpen("DialogueMenu")) {
 			State_Dialogue();
 		} else if (target == nullptr && !crosshairrefOn) {
 			State_Common(false, false);
@@ -347,8 +342,8 @@ namespace StrippingArmor
 	void AddKeywordForCandidates(RE::TESObjectREFR* member, bool byKey)
 	{
 		bool bForced = member->IsDead(true) 
-			|| (RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu") && Config::GetConditionPickingPocketOn()) 
-			|| (RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu") && Config::GetConditionTalkingOn());
+			|| (Utility::IsMenuOpen("PickpocketMenu") && Config::GetConditionPickingPocketOn()) 
+			|| (Utility::IsMenuOpen("DialogueMenu") && Config::GetConditionTalkingOn());
 
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.AddKeywordForCandidates\" \"{}\" \"{}\" \"{}\"",
 			member->formID, bForced, byKey));
@@ -402,6 +397,21 @@ namespace StrippingArmor
 		return false;
 	}
 
+	bool ShouldShowSpaceSuit(RE::TESObjectREFR* member)
+	{
+		if (member == nullptr)
+			return false;
+		bool isReadyCandidate = member->HasKeyword(GetKeyword("SACandidateCheckReady"));
+		bool isReadyCorpse = member->HasKeyword(GetKeyword("SACorpseCheckReady"));
+		bool ShouldShowSpaceSuitOK = member->HasKeyword(GetKeyword("SAConditionShouldShowSuit"));
+
+		if (isReadyCandidate || isReadyCorpse) {
+			if (ShouldShowSpaceSuitOK)
+				return true;
+		}
+		return false;
+	}
+
 	bool CheckConditionOK(RE::TESObjectREFR* member)
 	{
 		bool result = false;
@@ -451,7 +461,10 @@ namespace StrippingArmor
 	{
 		int HighOrLow = 0;
 		if (!IsReadyForCorpse(member))
-			return HighOrLow;
+			return 0;
+
+		if (MCHasKeyword(member, "SAConditionSealed")) 
+			return 0;
 
 		if (MCHasKeyword(member, "SATemparetureLow")) {
 			HighOrLow = -1;
@@ -465,11 +478,16 @@ namespace StrippingArmor
 	{
 		if (!IsReadyForCorpse(member))
 			return;
-		if (!Config::GetChangingAppearanceOfCorpseEnabled())
+		if (!Config::GetChangingAppearanceOfCorpseEnabled()) {
+			RemoveCorpseKeywords(member);
 			return;
+		}
+
 		int HighOrLow = GetHighOrLow(member);
-		if (HighOrLow == 0)
-				return;
+		if (HighOrLow == 0) {
+			RemoveCorpseKeywords(member);
+			return;
+		}
 			
 		ChangingCorpse2(member, HighOrLow);
 		RemoveCorpseKeywords(member);
@@ -542,6 +560,11 @@ namespace StrippingArmor
 			return false;
 		if (!IsBreathable(member)) {
 			return true;
+		//}
+		//if (ShouldShowSpaceSuit(member)) {
+		//	return true;
+		//} else {
+		//	return false;
 		}
 		if (ArmorClothCombinationMap[member] >= 2) {
 			return false;
@@ -571,8 +594,6 @@ namespace StrippingArmor
 		auto armor = GetArmor(editorID);
 		Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armor->formID)));
 		Info(format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
-
-
 	}
 
 	void DoEffectShader(RE::TESObjectREFR* member)
@@ -707,6 +728,8 @@ namespace StrippingArmor
 			{ "SABreathableOK", 0x82a },
 			{ "SACandidateCheckByKey", 0x82c },
 			{ "SACandidateCheckByLoot", 0x82d },
+			{ "SAConditionSealed", 0x82e },
+			{ "SAConditionShouldShowSuit", 0x82f },
 		};
 		Info(format("MakeKeywordMapIfNeeded: process: list:{}", pairs.size()));
 		auto form = RE::TESForm::LookupByEditorID("SACandidateCheckReady");

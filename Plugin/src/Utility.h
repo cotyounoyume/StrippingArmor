@@ -26,7 +26,12 @@ namespace Utility
 	RE::BGSKeyword*     GetKeywordFromID(int formID, int modIndex);
 	RE::TESBoundObject* GetArmorFromString(std::string editorID);
 	RE::TESBoundObject* GetArmorFromID(int formID, int modIndex);
-
+	bool                IsMenuOpen(std::string MenuName, bool DialogOnly = true);
+	bool                IsMenuOthersOpen();
+	bool                IsMenuForSystemOpen();
+	bool                IsMenuForTradeOpen();
+	bool                IsMenuForTerminalOpen();
+	bool                IsMenuInGameOpen();
 	//for Inventory Handling
 	inline std::unordered_map<RE::TESBoundObject*, int> ItemForScanner;
 	inline std::unordered_map<RE::TESBoundObject*, std::string>  ItemTypesForScanner;
