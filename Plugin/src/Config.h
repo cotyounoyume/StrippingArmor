@@ -5,6 +5,7 @@ namespace Config
 {
 	inline std::string StrippingKey = "T";
 	inline bool        EffectOn = true;
+	inline bool        StrippingKeyOn = true;
 	inline bool        EffectForCorpseOn = true;
 	inline std::string EffectFormID = "0002e54d";
 	inline bool        AlternativeClothOn = false;
@@ -21,13 +22,16 @@ namespace Config
 	inline bool        ConditionUnconsciousOn = true;
 	inline bool        ConditionPickingPocketOn = true;
 	inline bool        ConditionBleedingOutOn = true;
-
+	inline bool        DebugExecuteToAllActorsOn = true;
+	inline bool        DebugExecuteToCrossRefActorForcedOn = true;
+	
 
 
 	void        ReadIni();
 	std::string GetStrippingKey();
 	char        GetStrippingKeyNumber();
 	bool        GetEffectEnabled();
+	bool        GetStrippingKeyOn();
 	bool        GetEffectForCorpseEnabled();
 	std::string GetEffectFormID();
 	bool        GetAlternativeClothEnabled();
@@ -44,4 +48,6 @@ namespace Config
 	bool        GetConditionIsCommandedOn();
 	bool        GetConditionPickingPocketOn();
 	bool        GetConditionBleedingOutOn();
+	bool        GetDebugExecuteToAllActorsOn();
+	bool        GetDebugExecuteToCrossRefActorForcedOn();
 }

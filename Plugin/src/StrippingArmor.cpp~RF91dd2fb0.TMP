@@ -143,31 +143,17 @@ namespace StrippingArmor
 			Info(format("can't get parentCell"));
 			return;
 		}
-		int cnt = 0;
 		for (auto ref : cell->references) {
 			auto obj = ref.get();
-			if (!obj || !obj->IsActor())
-				continue;
-			if (obj->formID == 0x14) {
-				Info(fmt::format("DebugToSameCell: formID 0x14 is player. Skip"));
+			if (!obj) {
+				Info(format("obj is nullptr"));
 				continue;
 			}
-			auto racename = obj->GetVisualsRace()->GetFormEditorID();
-			auto raceid = obj->GetVisualsRace()->GetFormID();
-
-			if (raceid != 0x347d) {
-				Info(fmt::format("DebugToSameCell: formID:{} is NOT HumanRace({}). Skip", Utility::num2hex(obj->formID), racename));
+			if (!obj->IsActor()) {
+				Info(format("ref:{} is NOT Actor", obj->GetFormEditorID()));
 				continue;
 			}
-
-			Info(fmt::format("DebugToSameCell: to {}:{} (count={})", Utility::num2hex(obj->formID), obj->GetFormEditorID(), cnt++));
-			LastTarget = obj;
-			AddKeywordForCandidates(LastTarget, true, true);
-			if (LastTarget->IsDead(true)) {
-				LootedCorpseMap[LastTarget] = true;
-				StrippingKeyTappedMap[LastTarget] = true;
-			}
-			Sleep(Config::GetTimePerFrame()/5);
+			AddKeywordForCandidates(obj, true);
 		}
 
 	}
@@ -210,7 +196,7 @@ namespace StrippingArmor
 	void StateTargetOnCrosshairOn_LivingRoute()
 	{
 		if (IsKeyPressed()) {
-			AddKeywordForCandidates(LastTarget, true, Config::GetDebugExecuteToCrossRefActorForcedOn());
+			AddKeywordForCandidates(LastTarget, true);
 		}
 	}
 
@@ -378,13 +364,12 @@ namespace StrippingArmor
 		}
 	}
 
-	void AddKeywordForCandidates(RE::TESObjectREFR* member, bool byKey, bool isForcedByDebugging)
+	void AddKeywordForCandidates(RE::TESObjectREFR* member, bool byKey)
 	{
 		bool bForced = member->IsDead(true) 
 			|| (Utility::IsMenuOpen("PickpocketMenu") && Config::GetConditionPickingPocketOn()) 
 			|| (Utility::IsMenuOpen("DialogueMenu") && Config::GetConditionTalkingOn());
-		if (isForcedByDebugging)
-			bForced = true;
+
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.AddKeywordForCandidates\" \"{}\" \"{}\" \"{}\"",
 			member->formID, bForced, byKey));
 		Candidates[member] = true;
@@ -470,7 +455,6 @@ namespace StrippingArmor
 
 	void StrippingArmorWithKeyword(RE::TESObjectREFR* member)
 	{
-		Info(fmt::format("StrippingArmorWithKeyword: Start:{}:{}",Utility::num2hex(member->formID)  ,member->GetFormEditorID()));
 		if (!IsReady(member))
 			return;
 		if (!CheckConditionOK(member)) {
@@ -483,7 +467,7 @@ namespace StrippingArmor
 			ArmorClothCombinationMap[member] = GetArmorClothCombination();
 
 		if (!member->IsDead(true)) {
-			DropEquipItems(member);
+			DropEquipItems();
 			EquipDummysuit(member);
 		} else {
 			if (CheckByKey(member)) {
@@ -496,7 +480,6 @@ namespace StrippingArmor
 		}
 		DoEffectShader(member);
 		RemoveCandidateKeywords(member);
-		Info(fmt::format("StrippingArmorWithKeyword: Finish:{}:{}",Utility::num2hex(member->formID)  ,member->GetFormEditorID()));
 	}
 
 	int GetHighOrLow(RE::TESObjectREFR* member)
@@ -518,8 +501,6 @@ namespace StrippingArmor
 
 	void ChangingCorpseWithKeyword(RE::TESObjectREFR* member)
 	{
-		Info(format("ChangingCorpseWithKeyword: Start:{}", member->GetFormEditorID()));
-
 		if (!IsReadyForCorpse(member))
 			return;
 		if (!Config::GetChangingAppearanceOfCorpseEnabled()) {
@@ -535,7 +516,6 @@ namespace StrippingArmor
 			
 		ChangingCorpse2(member, HighOrLow);
 		RemoveCorpseKeywords(member);
-		Info(format("ChangingCorpseWithKeyword: Finish:{}", member->GetFormEditorID()));
 	}
 
 	void RemoveCandidateKeywords(RE::TESObjectREFR* member)
@@ -554,12 +534,12 @@ namespace StrippingArmor
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.{}\" {}", scriptMethod, member->formID));
 	}
 
-	void DropEquipItems(RE::TESObjectREFR* member)
+	void DropEquipItems()
 	{
-		if (!member)
+		if (!LastTarget)
 			return;
-		Info(fmt::format("DropEquipItems: start: {}:{}", Utility::num2hex(member->formID), member->GetFormEditorID()));
-		auto armors = Utility::CollectEquipItems(member, "ARMOR");
+		Info(format("DropEquipItems: start: {}", LastTarget->GetFormEditorID()));
+		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
@@ -576,9 +556,9 @@ namespace StrippingArmor
 				scriptName = "DropObject2";
 			}
 			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.{}\" \"{}\" \"{}\" \"{}\" \"{}\"",
-				scriptName, member->formID, item->formID, Config::GetRePickTimer(), Config::GetCanStealDroppedItemOn()));
+				scriptName, LastTarget->formID, item->formID, Config::GetRePickTimer(), Config::GetCanStealDroppedItemOn()));
 		}
-		Info(fmt::format("DropEquipItems: finish {}:{}", Utility::num2hex(member->formID), member->GetFormEditorID()));
+		Info(format("DropEquipItems: finish {}", LastTarget->GetFormEditorID()));
 	}
 
 	void RemoveEquipItems(bool leftOne)

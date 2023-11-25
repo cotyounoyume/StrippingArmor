@@ -16,6 +16,7 @@ namespace StrippingArmor
 	bool                IsTargetDead(bool isLastTarget);
 	void                State_Common(bool targetOn, bool crosshairOn);
 	void                State_Dialogue();
+	void                State_DebugToSameCell();
 	void                StateTargetOffCrosshairOff();
 	void                StateTargetOnCrosshairOff_CommonRoute();
 	void                StateTargetOnCrosshairOff_LivingRoute();
@@ -33,7 +34,7 @@ namespace StrippingArmor
 	bool                MCHasKeyword(RE::TESObjectREFR* object, std::string keywordString);
 	void                MemberCheckerCandidate();
 	void                MemberCheckerCorpse();
-	void                AddKeywordForCandidates(RE::TESObjectREFR* member, bool byKey);
+	void                AddKeywordForCandidates(RE::TESObjectREFR* member, bool byKey, bool isForcedByDebugging = false);
 	void                AddKeywordForCorpses(RE::TESObjectREFR* member);
 	bool                IsReady(RE::TESObjectREFR* member);
 	bool                IsReadyForCorpse(RE::TESObjectREFR* member);
@@ -46,7 +47,7 @@ namespace StrippingArmor
 	void                ChangingCorpseWithKeyword(RE::TESObjectREFR* member);
 	void                RemoveCandidateKeywords(RE::TESObjectREFR* member);
 	void                RemoveCorpseKeywords(RE::TESObjectREFR* member);
-	void                DropEquipItems();
+	void                DropEquipItems(RE::TESObjectREFR* member);
 	void                RemoveEquipItems(bool leftOne);
 	bool                NeedDummysuit(RE::TESObjectREFR* member);
 	void                EquipDummysuit(RE::TESObjectREFR* member);

@@ -18,6 +18,12 @@ namespace Config
 		StrippingKey = key;
 		Info(fmt::format("StrippingArmor: key={}, keynum={}", key, key.c_str()[0]));
 
+		std::string strippingKeyOn = config["Config"]["StrippingKeyOn"].value_or("");
+		if (strippingKeyOn == "")
+			return;
+		StrippingKeyOn = (strippingKeyOn == "True" || strippingKeyOn == "true");
+		Info(fmt::format("StrippingArmor: strippingKeyOn={}, StrippingKeyOn={}", strippingKeyOn, StrippingKeyOn));
+
 		std::string effect = config["Config"]["EffectShaderForStrippingOn"].value_or("");
 		if (effect == "")
 			return;
@@ -102,6 +108,20 @@ namespace Config
 		ConditionBleedingOutOn = (conditionBleedingOutOn == "True" || conditionBleedingOutOn == "true");
 		Info(fmt::format("StrippingArmor: conditionBleedingOutOn={}, ConditionBleedingOutOn={}", conditionBleedingOutOn, ConditionBleedingOutOn));
 
+		std::string debugExecuteToAllActorsOn = config["Config"]["DebugExecuteToAllActorsInSameCell"].value_or("");
+		if (debugExecuteToAllActorsOn == "")
+			return;
+		DebugExecuteToAllActorsOn = (debugExecuteToAllActorsOn == "True" || debugExecuteToAllActorsOn == "true");
+		Info(fmt::format("StrippingArmor: debugExecuteToAllActorsOn={}, DebugExecuteToAllActorsOn={}", debugExecuteToAllActorsOn, DebugExecuteToAllActorsOn));
+
+		std::string debugExecuteToCrossRefActorForcedOn = config["Config"]["DebugExecuteToCrossRefActorForced"].value_or("");
+		if (debugExecuteToCrossRefActorForcedOn == "")
+			return;
+		DebugExecuteToCrossRefActorForcedOn = (debugExecuteToCrossRefActorForcedOn == "True" || debugExecuteToCrossRefActorForcedOn == "true");
+		Info(fmt::format("StrippingArmor: debugExecuteToCrossRefActorForcedOn={}, DebugExecuteToCrossRefActorForcedOn={}", debugExecuteToCrossRefActorForcedOn, DebugExecuteToCrossRefActorForcedOn));
+
+
+		
 
 		std::string corpseTimer = config["Config"]["CorpseTimer"].value_or("");
 		if (corpseTimer == "")
@@ -150,6 +170,21 @@ namespace Config
 	bool GetEffectEnabled()
 	{
 		return EffectOn;
+	}
+
+	bool GetDebugExecuteToAllActorsOn()
+	{
+		return DebugExecuteToAllActorsOn;
+	}
+
+	bool GetDebugExecuteToCrossRefActorForcedOn()
+	{
+		return DebugExecuteToCrossRefActorForcedOn;
+	}
+
+	bool GetStrippingKeyOn()
+	{
+		return StrippingKeyOn;
 	}
 
 	bool GetEffectForCorpseEnabled()
