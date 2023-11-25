@@ -88,7 +88,7 @@ namespace Utility
 	RE::BGSKeyword* GetKeywordFromID(int formID, int modIndex)
 	{
 		int  fullFormID = modIndex * (1 << 24) + formID;
-		Info(format("GetKeywordFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
+		//Info(format("GetKeywordFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
 
 		auto form = RE::TESForm::LookupByID<RE::BGSKeyword>(fullFormID);
 		if (!form) {
@@ -171,7 +171,7 @@ namespace Utility
 	RE::TESBoundObject* GetArmorFromID(int formID, int modIndex)
 	{
 		int  fullFormID = modIndex * (1 << 24) + formID;
-		Info(format("GetArmorFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
+		//Info(format("GetArmorFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
 		auto form = RE::TESForm::LookupByID(fullFormID);
 		if (!form) {
 			Info(format("ERROR: can't find id:{}", Utility::num2hex(fullFormID)));

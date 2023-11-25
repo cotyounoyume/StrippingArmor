@@ -15,6 +15,14 @@ namespace Config
 	inline bool        EnableDroppingItemsOn = true;
 	inline int         RePickTimer = 5;
 	inline bool        CanStealDroppedItemOn = false;
+	inline bool        ConditionTalkingOn = true;
+	inline bool        ConditionSleepingOn = true;
+	inline bool        ConditionIsCommandedOn = true;
+	inline bool        ConditionUnconsciousOn = true;
+	inline bool        ConditionPickingPocketOn = true;
+	inline bool        ConditionBleedingOutOn = true;
+
+
 
 	void        ReadIni();
 	std::string GetStrippingKey();
@@ -30,4 +38,10 @@ namespace Config
 	int         GetRePickTimer();
 	bool        GetEnableDroppingItemsOn();
 	bool        GetCanStealDroppedItemOn();
+	bool        GetConditionTalkingOn();
+	bool        GetConditionSleepingOn();
+	bool        GetConditionUnconsciousOn();
+	bool        GetConditionIsCommandedOn();
+	bool        GetConditionPickingPocketOn();
+	bool        GetConditionBleedingOutOn();
 }

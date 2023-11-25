@@ -66,6 +66,43 @@ namespace Config
 		CanStealDroppedItemOn = (canStealDroppedItemOn == "True" || canStealDroppedItemOn == "true");
 		Info(fmt::format("StrippingArmor: canStealDroppedItemOn={}, CanStealDroppedItemOn={}", canStealDroppedItemOn, CanStealDroppedItemOn));
 
+		std::string conditionTalkingOn = config["Config"]["ConditionTalking"].value_or("");
+		if (conditionTalkingOn == "")
+			return;
+		ConditionTalkingOn = (conditionTalkingOn == "True" || conditionTalkingOn == "true");
+		Info(fmt::format("StrippingArmor: conditionTalkingOn={}, ConditionTalkingOn={}", conditionTalkingOn, ConditionTalkingOn));
+
+		std::string conditionSleepingOn = config["Config"]["ConditionSleeping"].value_or("");
+		if (conditionSleepingOn == "")
+			return;
+		ConditionSleepingOn = (conditionSleepingOn == "True" || conditionSleepingOn == "true");
+		Info(fmt::format("StrippingArmor: conditionSleepingOn={}, ConditionSleepingOn={}", conditionSleepingOn, ConditionSleepingOn));
+
+		std::string conditionUnconsciousOn = config["Config"]["ConditionUnconscious"].value_or("");
+		if (conditionUnconsciousOn == "")
+			return;
+		ConditionUnconsciousOn = (conditionUnconsciousOn == "True" || conditionUnconsciousOn == "true");
+		Info(fmt::format("StrippingArmor: conditionUnconsciousOn={}, ConditionUnconsciousOn={}", conditionUnconsciousOn, ConditionUnconsciousOn));
+
+		std::string conditionIsCommandedOn = config["Config"]["ConditionIsCommanded"].value_or("");
+		if (conditionIsCommandedOn == "")
+			return;
+		ConditionIsCommandedOn = (conditionIsCommandedOn == "True" || conditionIsCommandedOn == "true");
+		Info(fmt::format("StrippingArmor: conditionIsCommandedOn={}, ConditionIsCommandedOn={}", conditionIsCommandedOn, ConditionIsCommandedOn));
+
+		std::string conditionPickingPocketOn = config["Config"]["ConditionPickingPocket"].value_or("");
+		if (conditionPickingPocketOn == "")
+			return;
+		ConditionPickingPocketOn = (conditionPickingPocketOn == "True" || conditionPickingPocketOn == "true");
+		Info(fmt::format("StrippingArmor: conditionPickingPocketOn={}, ConditionPickingPocketOn={}", conditionPickingPocketOn, ConditionPickingPocketOn));
+
+		std::string conditionBleedingOutOn = config["Config"]["ConditionBleedingOut"].value_or("");
+		if (conditionBleedingOutOn == "")
+			return;
+		ConditionBleedingOutOn = (conditionBleedingOutOn == "True" || conditionBleedingOutOn == "true");
+		Info(fmt::format("StrippingArmor: conditionBleedingOutOn={}, ConditionBleedingOutOn={}", conditionBleedingOutOn, ConditionBleedingOutOn));
+
+
 		std::string corpseTimer = config["Config"]["CorpseTimer"].value_or("");
 		if (corpseTimer == "")
 			return;
@@ -154,6 +191,37 @@ namespace Config
 	{
 		return EnableDroppingItemsOn;
 	}
+
+	bool GetConditionTalkingOn()
+	{
+		return ConditionTalkingOn;
+	}
+
+	bool GetConditionSleepingOn()
+	{
+		return ConditionSleepingOn;
+	}
+
+	bool GetConditionUnconsciousOn()
+	{
+		return ConditionUnconsciousOn;
+	}
+
+	bool GetConditionIsCommandedOn()
+	{
+		return ConditionIsCommandedOn;
+	}
+
+	bool GetConditionPickingPocketOn()
+	{
+		return ConditionPickingPocketOn;
+	}
+
+	bool GetConditionBleedingOutOn()
+	{
+		return ConditionBleedingOutOn;
+	}
+
 
 	bool GetCanStealDroppedItemOn()
 	{
