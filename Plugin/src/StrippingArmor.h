@@ -7,8 +7,7 @@ namespace StrippingArmor
 {
 	void                                                        MainLoop();
 	int                                                         GetStrippingArmorIndex();
-	RE::BGSKeyword*                                             GetKeywordFromID(int formID);
-	RE::TESBoundObject*                                         GetArmorFromID(int formID);
+	//RE::TESObjectMISC*                                          GetMiscFromString(std::string name);
 	void                                                        ResetParameter();
 	void                                                        UpdateCrosshairTarget();
 	void                                                        StateSelector();
@@ -16,6 +15,7 @@ namespace StrippingArmor
 	bool                                                        IsTargetDead(bool isLastTarget);
 	void                                                        State_Common(bool targetOn, bool crosshairOn);
 	void                                                        State_Dialogue();
+	void                                                        State_Pickpocket();
 	void                                                        State_DebugToSameCell();
 	void                                                        StateTargetOffCrosshairOff();
 	void                                                        StateTargetOnCrosshairOff_CommonRoute();
@@ -54,26 +54,35 @@ namespace StrippingArmor
 	bool                                                        NeedDummysuit(RE::TESObjectREFR* member);
 	void                                                        EquipDummysuit(RE::TESObjectREFR* member);
 	void                                                        DoEffectShader(RE::TESObjectREFR* member);
-	RE::TESBoundObject*                                         GetCorpsesuit(RE::TESObjectREFR* member);
-	int                                                         GetArmorClothCombination();
+	RE::TESObjectARMO*                                          GetCorpsesuit(RE::TESObjectREFR* member);
+	int                                                         GetArmorClothCombination(RE::TESObjectREFR* member);
 	bool                                                        IsKeyPressed();
 	void                                                        ChangingCorpse2(RE::TESObjectREFR* targetActor, int HighOrLow);
-	RE::TESBoundObject*                                         GetArmor(std::string editorID);
+	RE::TESObjectARMO*                                          GetArmor(std::string editorID);
 	RE::BGSKeyword*                                             GetKeyword(std::string editorID);
 	void                                                        MakeKeywordMapIfNeeded();
-	void                                                        MakeArmorMapIfNeeded();
 	int                                                         GetEquipmentStackCount(const RE::BGSInventoryItem& item);
-	std::unordered_map<RE::TESBoundObject*, std::string>        GetArmorTypes(RE::TESObjectREFR* actor);
-	std::string                                                 GetArmorType(const RE::BGSInventoryItem& item);
-	std::vector<RE::TESBoundObject*>                            GetLootedArmors(RE::TESObjectREFR* actor);
-	bool                                                        IsDummySuits(RE::TESBoundObject* item);
+	std::unordered_map<RE::TESObjectARMO*, std::string>         GetArmorTypes(RE::TESObjectREFR* actor);
+	std::unordered_map<std::string, RE::TESObjectARMO*>         GetArmorTypesInverse(RE::TESObjectREFR* actor);
+	std::vector<RE::TESObjectARMO*>                             GetLootedArmors(RE::TESObjectREFR* actor);
+	bool                                                        IsDummySuits(RE::TESObjectARMO* item);
+	bool                                                        IsPickpocketItems(RE::TESBoundObject* item);
 	bool                                                        HasDummySuits(RE::TESObjectREFR* member);
+	bool                                                        HasPickpocketItems(RE::TESObjectREFR* member);
+	std::unordered_map<std::string, RE::TESObjectWEAP*>         GetPickpocketFlagItems(RE::TESObjectREFR* member);
+	void                                                        AddPickpocketItems(RE::TESObjectREFR* member);
+	void                                                        MemorizeArmorType(RE::TESObjectREFR* member);
+	void                                                        UnmemorizeArmorType(RE::TESObjectREFR* member);
+	void                                                        CheckPickpocket(RE::TESObjectREFR* member);
+	void                                                        AddKeyword(RE::TESObjectREFR* member, std::string keyword);
+	void                                                        RemoveKeyword(RE::TESObjectREFR* member, std::string keyword);
+	void                                                        SubKeyword(RE::TESObjectREFR* member, std::string keyword, std::string scriptname);
+	bool                                                        AllowTypeByTheftLevel(std::string type, int level);
 
 	inline int                                                  StrippingArmorIndex = 0;
 	inline int                                                  FormIDForModIndex = 0x827;
 	inline std::string                                          NameForModIndex = "SACandidateCheckReady";
 	inline std::unordered_map<std::string, RE::BGSKeyword*>     KeywordMap;
-	inline std::unordered_map<std::string, RE::TESBoundObject*> ArmorMap;
 	inline bool                                                 EffectON = false;
 	inline bool                                                 NeedReset = false;
 	inline RE::TESObjectREFR*                                   target;
@@ -85,12 +94,59 @@ namespace StrippingArmor
 	inline std::unordered_map<RE::TESObjectREFR*, bool>         ShouldShowSpacesuitMap;
 	inline int                                                  WaitCount = 0;
 	inline int                                                  WaitCountPlus = 10;
-	inline std::unordered_map<RE::TESBoundObject*, std::string> ArmorTypesMap;
 	inline std::unordered_map<RE::TESObjectREFR*, bool>         ReadyStateMap;
 	inline std::unordered_map<RE::TESObjectREFR*, int>          ArmorClothCombinationMap;
 	inline std::unordered_map<RE::TESObjectREFR*, bool>         LootedCorpseMap;
 	inline std::unordered_map<RE::TESObjectREFR*, bool>         StrippingKeyTappedMap;
-	inline std::unordered_map<RE::TESBoundObject*, int>         ItemForScanner;
-	inline std::unordered_map<RE::TESBoundObject*, std::string> ItemTypesForScanner;
-	inline std::string                                          ItemType;
+	inline std::unordered_map<std::string, std::string>         Misc2PartMap = {
+        { "Dummy_Cloth_for_PickPocket", "Cloth" },
+        { "Dummy_Hat_for_PickPocket", "Hat" },
+        { "Dummy_Spacesuit_for_PickPocket", "Spacesuit" },
+        { "Dummy_Helmet_for_PickPocket", "Helmet" },
+        { "Dummy_Backpack_for_PickPocket", "Backpack" },
+	};
+	inline std::unordered_map<std::string, std::string> Part2MiscMap = {
+		{ "Cloth"    , "Dummy_Cloth_for_PickPocket" },
+		{ "Hat"      , "Dummy_Hat_for_PickPocket" },
+		{ "Spacesuit", "Dummy_Spacesuit_for_PickPocket" },
+		{ "Helmet"   , "Dummy_Helmet_for_PickPocket" },
+		{ "Backpack" , "Dummy_Backpack_for_PickPocket" },
+	};
+	inline std::vector<std::string> PartList = {
+		"Cloth",
+		"Hat",
+		"Spacesuit",
+		"Helmet",
+		"Backpack"
+	};
+	inline std::vector<std::string> KeywordList = {
+		"SACandidateCheckReady",
+		"SACorpseCheckReady",
+		"SADontStripThis",
+		"SANeedDummysuit",
+		"SAConditionNG",
+		"SAConditionOK",
+		"SADetailSleeping",
+		"SADetailUnconscious",
+		"SADetailBleedingOut",
+		"SADetailCommanded",
+		"SADetailEtc",
+		"SATemparetureNormal",
+		"SATemparetureLow",
+		"SATemparetureHigh",
+		"SACorpseNormal",
+		"SACorpseFrozen",
+		"SACorpseDusty",
+		"SABreathableNG",
+		"SABreathableOK",
+		"SACandidateCheckByKey",
+		"SACandidateCheckByLoot",
+		"SAConditionSealed",
+		"SAConditionShouldShowSuit",
+		"SAPickpocketCloth",
+		"SAPickpocketHat",
+		"SAPickpocketSpacesuit",
+		"SAPickpocketHelmet",
+		"SAPickpocketBackpack",
+	};
 }

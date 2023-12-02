@@ -25,20 +25,6 @@ namespace StrippingArmor
 		return StrippingArmorIndex;
 	}
 
-	RE::BGSKeyword* GetKeywordFromID(int formID)
-	{
-		if (StrippingArmorIndex == 0)
-			GetStrippingArmorIndex();
-		return Utility::GetKeywordFromID(formID, StrippingArmorIndex);
-	}
-
-	RE::TESBoundObject* GetArmorFromID(int formID)
-	{
-		if (StrippingArmorIndex == 0)
-			GetStrippingArmorIndex();
-		return Utility::GetArmorFromID(formID, StrippingArmorIndex);
-	}
-
 	void ResetParameter()
 	{
 		Events::NeedReset = false;
@@ -46,7 +32,6 @@ namespace StrippingArmor
 		LastTarget = nullptr;
 		crosshairrefOn = false;
 		WaitCount = 0;
-		ArmorTypesMap.clear();
 		ReadyStateMap.clear();
 		ArmorClothCombinationMap.clear();
 		LootedCorpseMap.clear();
@@ -73,18 +58,13 @@ namespace StrippingArmor
 
 		if (Config::GetDebugExecuteToAllActorsOn() && IsKeyPressed()){
 			State_DebugToSameCell();
-		}else if (Utility::IsMenuOpen("DialogueMenu")) {
+		} else if (Utility::IsMenuOpen("DialogueMenu")) {
 			State_Dialogue();
-		//} else if (target == nullptr && !crosshairrefOn) {
-		//	State_Common(false, false);
-		//} else if (target != nullptr && crosshairrefOn) {
-		//	State_Common(true, true);
-		//} else if (target && !crosshairrefOn) {
-		//	State_Common(true, false);
-		//} else {
-		//	State_Common(false, true);
+		} else if (Utility::IsMenuOpen("PickpocketMenu")) {
+			State_Pickpocket();
+		} else {
+			State_Common(target != nullptr, crosshairrefOn);
 		}
-		State_Common(target != nullptr, crosshairrefOn);
 	}
 
 	bool IsTargetValid(bool isLastTarget)
@@ -188,6 +168,27 @@ namespace StrippingArmor
 		AddKeywordForCandidates(LastTarget, true);
 	}
 
+	void State_Pickpocket()
+	{
+		if (!LastTarget || !LastTarget->IsActor())
+			return;
+
+		if (Config::GetPerfectTouchOn()) {
+			if (!HasPickpocketItems(LastTarget)) {
+				AddPickpocketItems(LastTarget);
+				return;
+			} else {
+				CheckPickpocket(LastTarget);
+			}
+		} else {
+			if (!IsKeyPressed() || !Config::GetConditionPickingPocketOn())
+				return;
+			crosshairrefOn = true;
+
+			AddKeywordForCandidates(LastTarget, true);
+		}
+	}
+
 	void StateTargetOffCrosshairOff()
 	{
 		return;
@@ -197,9 +198,19 @@ namespace StrippingArmor
 	{
 		crosshairrefOn = true;
 		LastTarget = target;
-		ArmorTypesMap = GetArmorTypes(LastTarget);
+		MemorizeArmorType(LastTarget);
+	}
+
+	void MemorizeArmorType(RE::TESObjectREFR* member)
+	{
+		//ArmorTypesMap = GetArmorTypes(LastTarget);
 		if (!ArmorClothCombinationMap.contains(LastTarget))
-			ArmorClothCombinationMap[LastTarget] = GetArmorClothCombination();
+			ArmorClothCombinationMap[LastTarget] = GetArmorClothCombination(LastTarget);
+	}
+
+	void UnmemorizeArmorType(RE::TESObjectREFR* member)
+	{
+		ArmorClothCombinationMap.erase(LastTarget);
 	}
 
 	void StateTargetOnCrosshairOff_LivingRoute()
@@ -217,7 +228,7 @@ namespace StrippingArmor
 	void StateTargetOffCrosshairOn_Common()
 	{
 		crosshairrefOn = false;
-		ArmorClothCombinationMap.erase(LastTarget);
+		UnmemorizeArmorType(LastTarget);
 		LastTarget = nullptr;
 		Events::DialogueTarget = nullptr;
 	}
@@ -369,7 +380,7 @@ namespace StrippingArmor
 		if (actor == nullptr)
 			return;
 		Info(fmt::format("ReadyForLoot2: Start:  {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
-		auto armorMap = Utility::CollectInventoryItems(actor, "ARMOR");
+		auto armorMap = Utility::CollectInventoryArmors(actor);
 		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
@@ -380,29 +391,129 @@ namespace StrippingArmor
 				Info(fmt::format("  skip: item:{}, count:{}, isEquipped:{}", item->GetFormEditorID(), count, isEquipped));
 				continue;
 			}
-			Utility::ExecuteCommandStringOnFormID(actor->formID, fmt::format("additem {} 1", Utility::num2hex(item->formID)));
+			U::AddItem(actor->formID, item->formID, 1);
 		}
 		Info(fmt::format("ReadyForLoot2: Finish: {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
 		return;
+	}
+
+	void AddPickpocketItems(RE::TESObjectREFR* member)
+	{
+		int theftLevel = U::GetPerkLevel(RE::PlayerCharacter::GetSingleton(), 0x2c555b); //Skill Theft
+
+		Info(format("AddPickpocketItems: {}", member->GetFormEditorID()));
+		if (member == nullptr)
+			return;
+		auto armors = Utility::CollectEquipArmorsWithoutCount(member);
+		std::unordered_map<std::string, bool> flag;
+		for (auto armor : armors) {
+			Info(fmt::format("GetArmorType: {} is {}", armor->GetFormEditorID(), Utility::GetArmorType(armor)));
+			flag[Utility::GetArmorType(armor)] = true;
+		}
+		for (auto itr = flag.begin(); itr != flag.end(); ++itr) {
+			std::string type = itr->first;
+			std::string        itemName = fmt::format("Dummy_{}_for_PickPocket", type);
+			auto weapon = U::GetWeaponFromString(itemName);
+			if (!weapon)
+				continue;
+			if (!AllowTypeByTheftLevel(type, theftLevel))
+				continue;
+
+			Info(fmt::format("GetArmorType: {} is {}", itemName, weapon->GetFormEditorID()));
+			U::AddItem(member->formID, weapon->formID, 1);
+
+			std::string     sKeyword = fmt::format("SAPickpocket{}", type);
+			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.SAAddKeywordFromSFSE\" \"{}\" \"{}\"",
+				member->formID, sKeyword));
+		}
+	}
+
+	bool AllowTypeByTheftLevel(std::string type, int level)
+	{
+		Info(fmt::format("AllowTypeByTheftLevel: type:{}, level:{}, PPLevel:{}", type, level, Config::GetPPLevel(type)));
+		return level >= Config::GetPPLevel(type);
+	}
+
+	void AddKeyword(RE::TESObjectREFR* member, std::string keyword)
+	{
+		SubKeyword(member, keyword, "SAAddKeywordFromSFSE");
+	}
+
+	void RemoveKeyword(RE::TESObjectREFR* member, std::string keyword)
+	{
+		SubKeyword(member, keyword, "SARemoveKeywordFromSFSE");
+	}
+
+	void SubKeyword(RE::TESObjectREFR* member, std::string keyword, std::string scriptname)
+	{
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.{}\" \"{}\" \"{}\"",
+			scriptname, member->formID, keyword));
+	}
+
+	void CheckPickpocket(RE::TESObjectREFR* member)
+	{
+		if (!member)
+			return;
+		//Info(format("CheckPickpocket: {}", member->GetFormEditorID()));
+		if (Utility::HasKeyword(member, "SAPickpocketDone"))
+			return;
+
+		auto armorMap = GetArmorTypesInverse(member);
+		auto miscMap = GetPickpocketFlagItems(member);
+
+		bool rest = false;
+		for (auto part : PartList) {
+			std::string sKeyword = fmt::format("SAPickpocket{}", part);
+			if (!Utility::HasKeyword(member, sKeyword))
+				continue;
+			bool flg = miscMap.contains(part);
+			//Info(fmt::format("debug: part:{}, sKeyword:{}, flg:{}", part, sKeyword, flg)); 
+			if (miscMap.contains(part)) {
+				rest = true;
+				continue;
+			}
+			if (!armorMap.contains(part)) {
+				Info(fmt::format("ERROR: flagItem({}) exists, but, armor doesn't exist. skip and delete keyword({})", miscMap[part]->GetFormEditorID(), sKeyword));
+				RemoveKeyword(member, sKeyword);
+				continue;
+			}
+			if (!armorMap[part]->GetPlayable())
+				armorMap[part]->SetPlayable(true);
+
+			U::UnequipItem(member->formID, armorMap[part]->formID);
+			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.StealItemFromOtherInventory\" \"{}\" \"{}\"",
+				member->formID, armorMap[part]->formID));
+			RemoveKeyword(member, sKeyword);
+			auto weapon = U::GetWeaponFromString(Part2MiscMap[part]);
+			//Info(fmt::format("part:{}, name:{}", part, Part2MiscMap[part]));
+			//if (!weapon) {
+			//	Info(fmt::format("weapon is null"));
+			//}
+			int num = U::GetItemCount(0x14, weapon->formID, "WEAPON");
+			Info(fmt::format("flagItem:{}, num:{}", weapon->GetFormEditorID(), num));
+
+			if (num > 0)
+				U::RemoveItem(0x14, weapon->formID, 99);
+		}
+		if (!rest)
+			AddKeyword(member, "SAPickpocketDone");
 	}
 
 	void LootAndRemove()
 	{
 		auto armors = GetLootedArmors(LastTarget);
 		for (auto armor : armors) {
-			if (!ArmorTypesMap.contains(armor))
-				continue;
-			Info(fmt::format("  Looted:{}: {}: {}", Utility::num2hex(armor->formID), armor->GetFormEditorID(), ArmorTypesMap[armor]));
+			Info(fmt::format("  Looted:{}: {}: {}", Utility::num2hex(armor->formID), armor->GetFormEditorID(), Utility::GetArmorType(armor)));
 
-			if (ArmorTypesMap.contains(armor) && ArmorTypesMap[armor] == "Spacesuit") {
+			if (Utility::GetArmorType(armor) == "Spacesuit") {
 				if (LootedCorpseMap.contains(LastTarget))
 					LootedCorpseMap[LastTarget] = true;
 				AddKeywordForCandidates(LastTarget, false);
-				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
-				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+				U::UnequipItem(LastTarget->formID, armor->formID);
+				U::RemoveItem(LastTarget->formID, armor->formID, 99);
 			} else {
-				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("UnequipItem {}", Utility::num2hex(armor->formID)));
-				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} 99", Utility::num2hex(armor->formID)));
+				U::UnequipItem(LastTarget->formID, armor->formID);
+				U::RemoveItem(LastTarget->formID, armor->formID, 99);
 			}
 		}
 	}
@@ -492,9 +603,8 @@ namespace StrippingArmor
 		if (ShouldShowSpaceSuit(member) || ArmorClothCombinationMap[member] == 1) {
 			ShouldShowSpacesuitMap[member] = true;
 		}
-		ArmorTypesMap = GetArmorTypes(member);
 		if (!ArmorClothCombinationMap.contains(member))
-			ArmorClothCombinationMap[member] = GetArmorClothCombination();
+			ArmorClothCombinationMap[member] = GetArmorClothCombination(member);
 
 		if (!member->IsDead(true)) {
 			DropEquipItems(member);
@@ -574,7 +684,7 @@ namespace StrippingArmor
 		if (!member)
 			return;
 		Info(fmt::format("DropEquipItems: start: {}:{}", Utility::num2hex(member->formID), member->GetFormEditorID()));
-		auto armors = Utility::CollectEquipItems(member, "ARMOR");
+		auto armors = Utility::CollectEquipArmors(member);
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
@@ -600,7 +710,7 @@ namespace StrippingArmor
 
 	bool HasDummySuits(RE::TESObjectREFR* member)
 	{
-		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
+		auto armors = Utility::CollectEquipArmors(LastTarget);
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
@@ -610,10 +720,52 @@ namespace StrippingArmor
 		return false;
 	}
 
+	bool HasPickpocketItems(RE::TESObjectREFR* member)
+	{
+		if (!member)
+			return false;
+		if (Utility::HasKeyword(member, "SAPickpocketDone"))
+			return true;
+		//Info(format("HasPickpocketItems:{} start", member->GetFormEditorID()));
+		auto items = Utility::CollectInventoryWeapons(LastTarget);
+		for (auto itr = items.begin(); itr != items.end(); ++itr) {
+			int  count = itr->second;
+			auto item = itr->first;
+			//Info(format("  item:{}", item->GetFormEditorID()));
+			if (IsPickpocketItems(item))
+				return true;
+		}
+		//Info(format("HasPickpocketItems:{} end", member->GetFormEditorID()));
+		return false;
+	}
+
+	std::unordered_map<std::string, RE::TESObjectWEAP*> GetPickpocketFlagItems(RE::TESObjectREFR* member)
+	{
+		std::unordered_map<std::string, RE::TESObjectWEAP*> result;
+		if (!member)
+			return result;
+		if (Utility::HasKeyword(member, "SAPickpocketDone"))
+			return result;
+		//Info(format("GetPickpocketFlagItems:{} start", member->GetFormEditorID()));
+		auto items = Utility::CollectInventoryWeapons(LastTarget);
+		for (auto itr = items.begin(); itr != items.end(); ++itr) {
+			int  count = itr->second;
+			auto item = itr->first;
+			if (!IsPickpocketItems(item))
+				continue;
+			if (!Misc2PartMap.contains(item->GetFormEditorID()))
+				continue;
+			result[Misc2PartMap[item->GetFormEditorID()]] = item;
+			//Info(fmt::format("    item:{}, part:{}", item->GetFormEditorID(), Misc2PartMap[item->GetFormEditorID()]));
+		}
+		//Info(format("GetPickpocketFlagItems:{} end", member->GetFormEditorID()));
+		return result;
+	}
+
 	void RemoveEquipItems(bool leftOne)
 	{
 		Info(format("RemoveEquipItem: start"));
-		auto armors = Utility::CollectEquipItems(LastTarget, "ARMOR");
+		auto armors = Utility::CollectEquipArmors(LastTarget);
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
@@ -621,9 +773,9 @@ namespace StrippingArmor
 				continue;
 
 			Info(fmt::format("  Equipped:{}: {}", Utility::num2hex(item->formID), item->GetFormEditorID()));
-			Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("RemoveItem {} {}", Utility::num2hex(item->formID), count - 1));
+			U::RemoveItem(LastTarget->formID, item->formID, count - 1);
 			if (leftOne) {
-				Utility::ExecuteCommandStringOnFormID(LastTarget->formID, fmt::format("UnequipItem {}", Utility::num2hex(item->formID)));
+				U::UnequipItem(LastTarget->formID, item->formID);
 			}
 		}
 
@@ -646,8 +798,6 @@ namespace StrippingArmor
 		if (member == nullptr)
 			return;
 		Info(format("EquipDummysuit: start: {}", member->GetFormEditorID()));
-		//if (NeedDummysuit(member) == false && Config::GetAlternativeClothEnabled() == false)
-		//	return;
 
 		std::string editorID = "";
 		std::string editorIDsub = "";
@@ -674,7 +824,7 @@ namespace StrippingArmor
 			armorsub = GetArmor(editorIDsub);
 		if(armorsub)
 			Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armorsub->formID)));
-		Sleep(10);
+		Sleep(1);
 		Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armor->formID)));
 
 		Info(format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
@@ -689,7 +839,7 @@ namespace StrippingArmor
 		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.PlayEffect\" \"{}\" \"{}\" \"{}\"", member->formID, Config::GetEffectFormID(), timer));
 	}
 
-	RE::TESBoundObject* GetCorpsesuit(RE::TESObjectREFR* member)
+	RE::TESObjectARMO* GetCorpsesuit(RE::TESObjectREFR* member)
 	{
 		if (member == nullptr)
 			return nullptr;
@@ -710,18 +860,18 @@ namespace StrippingArmor
 		return armor;
 	}
 
-
-	int GetArmorClothCombination()
+	int GetArmorClothCombination(RE::TESObjectREFR* member)
 	{
 		bool clothOn = false;
 		bool suitOn = false;
-		for (auto itr = ArmorTypesMap.begin(); itr != ArmorTypesMap.end(); ++itr) {
-			if (itr->second == "Cloth")
+		auto armors = Utility::CollectEquipArmorsWithoutCount(member);
+		for (auto armor : armors) {
+			if (Utility::GetArmorType(armor) == "Cloth")
 				clothOn = true;
-			if (itr->second == "Spacesuit")
-				suitOn = true;
+			else if (Utility::GetArmorType(armor) == "Spacesuit")
+				suitOn = true;				
 		}
-
+		
 		int result = (clothOn) ? 2 : 0;
 		result += (suitOn) ? 1 : 0;
 		Info(format("GetArmorClothCombination: result:{}, clothOn:{}, suitOn:{}", result, clothOn, suitOn));
@@ -749,11 +899,9 @@ namespace StrippingArmor
 		LootedCorpseMap.erase(targetActor);
 	}
 
-	RE::TESBoundObject* GetArmor(std::string editorID)
+	RE::TESObjectARMO* GetArmor(std::string editorID)
 	{
-		if (!ArmorMap.contains(editorID))
-			return nullptr;
-		return ArmorMap[editorID];
+		return Utility::GetArmorFromString(editorID);
 	}
 
 	RE::BGSKeyword* GetKeyword(std::string editorID)
@@ -769,112 +917,23 @@ namespace StrippingArmor
 
 		if (!KeywordMap.size() == 0)
 			return;
-		//std::vector<std::string> list = {
-		//	"SACandidateCheckReady",
-		//	"SACorpseCheckReady",
-		//	"SADontStripThis",
-		//	"SANeedDummysuit",
-		//	"SAConditionNG",
-		//	"SAConditionOK",
-		//	"SADetailSleeping",
-		//	"SADetailUnconscious",
-		//	"SADetailBleedingOut",
-		//	"SADetailCommanded",
-		//	"SADetailEtc",
-		//	"SATemparetureNormal",
-		//	"SATemparetureLow",
-		//	"SATemparetureHigh",
-		//	"SACorpseNormal",
-		//	"SACorpseFrozen",
-		//	"SACorpseDusty",
-		//	"SABreathableNG",
-		//	"SABreathableOK",
-		//	"SACandidateCheckByKey",
-		//	"SACandidateCheckByLoot"
-			//"SAConditionSealed",
-			//"SAConditionShouldShowSuit",
-		//};
-		std::unordered_map<std::string, int> pairs = {
-			{ "SACandidateCheckReady", 0x827 },
-			{ "SACorpseCheckReady", 0x828 },
-			{ "SADontStripThis", 0x80a },
-			{ "SANeedDummysuit", 0x81c },
-			{ "SAConditionNG", 0x81d },
-			{ "SAConditionOK", 0x822 },
-			{ "SADetailSleeping", 0x823 },
-			{ "SADetailUnconscious", 0x824 },
-			{ "SADetailBleedingOut", 0x825 },
-			{ "SADetailCommanded", 0x826 },
-			{ "SADetailEtc", 0x829 },
-			{ "SATemparetureNormal", 0x821 },
-			{ "SATemparetureLow", 0x820 },
-			{ "SATemparetureHigh", 0x81f },
-			{ "SACorpseNormal", 0x80f },
-			{ "SACorpseFrozen", 0x810 },
-			{ "SACorpseDusty", 0x811 },
-			{ "SABreathableNG", 0x82b },
-			{ "SABreathableOK", 0x82a },
-			{ "SACandidateCheckByKey", 0x82c },
-			{ "SACandidateCheckByLoot", 0x82d },
-			{ "SAConditionSealed", 0x82e },
-			{ "SAConditionShouldShowSuit", 0x82f },
-		};
-		Info(format("MakeKeywordMapIfNeeded: process: list:{}", pairs.size()));
-		auto form = RE::TESForm::LookupByEditorID("SACandidateCheckReady");
-		if (!form) {
-			Info(format("TEST: LookupByEditorID is inactive"));
-		}		
-
-		for (auto itr = pairs.begin(); itr != pairs.end(); ++itr) {
-			auto key = GetKeywordFromID(itr->second);
-			if (!key) {
-				Info("key is null");
+		Info(format("MakeKeywordMapIfNeeded: process: list:{}", KeywordList.size()));
+		for (std::string item : KeywordList) {
+			auto keyword = Utility::GetKeywordFromString(item);
+			if (keyword) {
+				KeywordMap[item] = keyword;
 			}
-			KeywordMap[itr->first] = GetKeywordFromID(itr->second);
 		}
 		Info("MakeKeywordMapIfNeeded: process end:");
 	}
 
-	void MakeArmorMapIfNeeded()
+	std::vector<RE::TESObjectARMO*> GetLootedArmors(RE::TESObjectREFR* actor)
 	{
-		Info(format("MakeArmorMapIfNeeded: start: ArmorMap:{}", ArmorMap.size()));
-
-		if (!ArmorMap.size() == 0)
-			return;
-		std::unordered_map<std::string, int> pairs = {
-			{ "Dummy_Normal_Spacesuit", 0x805 },
-			{ "Dummy_Normal_Clothes", 0x830 },
-			{ "Dummy_NormalAlt_Clothes", 0x807 },
-			{ "Dummy_NormalAlt_Spacesuit", 0x809 },
-			{ "Dummy_CorpseFrozen_Spacesuit", 0x80b },
-			{ "Dummy_CorpseFrozen_Clothes", 0x80c },
-			{ "Dummy_CorpseDusty_Spacesuit", 0x80d },
-			{ "Dummy_CorpseDusty_Clothes", 0x80e },
-			{ "Dummy_CorpseFrozenAlt_Spacesuit", 0x818 },
-			{ "Dummy_CorpseFrozenAlt_Clothes", 0x819 },
-			{ "Dummy_CorpseDustyAlt_Spacesuit", 0x81a },
-			{ "Dummy_CorpseDustyAlt_Clothes", 0x81b },
-		};
-		Info(format("MakeArmorMapIfNeeded: process: list:{}", pairs.size()));
-
-		for (auto itr = pairs.begin(); itr != pairs.end(); ++itr) {
-			auto key = GetArmorFromID(itr->second);
-			if (!key) {
-				Info("armor is null");
-			}
-			ArmorMap[itr->first] = GetArmorFromID(itr->second);
-		}
-		Info("MakeArmorMapIfNeeded: process end:");
-	}
-
-
-	std::vector<RE::TESBoundObject*> GetLootedArmors(RE::TESObjectREFR* actor)
-	{
-		std::vector<RE::TESBoundObject*> result;
+		std::vector<RE::TESObjectARMO*> result;
 		if (actor == nullptr)
 			return result;
 
-		auto armorMap = Utility::CollectInventoryItems(actor, "ARMOR");
+		auto armorMap = Utility::CollectInventoryArmors(actor);
 		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			if (itr->second != 1 || !actor->IsObjectEquipped(itr->first))
 				continue;
@@ -896,57 +955,47 @@ namespace StrippingArmor
 		return sum;
 	}
 
-	std::unordered_map<RE::TESBoundObject*, std::string> GetArmorTypes(RE::TESObjectREFR* actor)
+	std::unordered_map<RE::TESObjectARMO*, std::string> GetArmorTypes(RE::TESObjectREFR* actor)
 	{
 		Info("GetArmorTypes Start:");
-		ItemTypesForScanner.clear();
-		auto scanner = [](const RE::BGSInventoryItem& item) -> RE::BSContainer::ForEachResult {
-			if (item.object->IsArmor()) {
-				if (IsDummySuits(item.object)) {
-					return RE::BSContainer::ForEachResult::kContinue;
-				}
-				ItemTypesForScanner[item.object] = GetArmorType(item);
-			}
-
-			return RE::BSContainer::ForEachResult::kContinue;
-		};
-		actor->ForEachEquippedItem(scanner);
+		std::unordered_map<RE::TESObjectARMO*, std::string> result;
+		auto                                                armors = Utility::CollectEquipArmors(actor);
+		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
+			if (IsDummySuits(itr->first))
+				continue;
+			result[itr->first] = Utility::GetArmorType(itr->first);
+		}
 		Info("GetArmorTypes Finish:");
-		return ItemTypesForScanner;
-	}
-
-	std::string GetArmorType(const RE::BGSInventoryItem& item)
-	{
-		std::string result = "";
-		if (!item.object->IsArmor() || item.instanceData == nullptr || item.instanceData->GetKeywordData() == nullptr) {
-			result = "Error";
-			Info(fmt::format("    GetArmorType: item: {}: result:{}", item.object->GetFormEditorID(), result));
-			return result;
-		}
-
-		if (item.object->GetFilledSlots() != 0) {
-			result = "Cloth";
-			Info(fmt::format("    GetArmorType: item: {}: result:{}", item.object->GetFormEditorID(), result));
-			return result;
-		}
-
-		if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBody")) {
-			result = "Spacesuit";
-		} else if (item.instanceData->GetKeywordData()->ContainsKeywordString("ArmorTypeSpacesuitBackpack")) {
-			result = "Backpack";
-		} else {
-			result = "Helmet";
-		}
-		Info(fmt::format("    GetArmorType: item: {}: result:{}", item.object->GetFormEditorID(), result));
-
 		return result;
 	}
 
-	bool IsDummySuits(RE::TESBoundObject* item)
+	std::unordered_map<std::string, RE::TESObjectARMO*> GetArmorTypesInverse(RE::TESObjectREFR* actor)
 	{
-		auto armor = static_cast<RE::TESObjectARMO*>(item);
+		//Info("GetArmorTypesInverse Start:");
+		std::unordered_map<std::string, RE::TESObjectARMO*> result;
+		auto                                                armors = Utility::CollectEquipArmors(actor);
+		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
+			if (IsDummySuits(itr->first))
+				continue;
+			result[Utility::GetArmorType(itr->first)] = itr->first;
+		}
+		//Info("GetArmorTypes Finish:");
+		return result;
+	}
+
+	bool IsDummySuits(RE::TESObjectARMO* armor)
+	{
 		if (!armor)
 			return false;
 		return armor->ContainsKeywordString("DontStripThis");
 	}
+
+	bool IsPickpocketItems(RE::TESBoundObject* item)
+	{
+		auto weap = static_cast<RE::TESObjectWEAP*>(item);
+		if (!weap)
+			return false;
+		return weap->ContainsKeywordString("SAForPickpocket");
+	}
+
 }

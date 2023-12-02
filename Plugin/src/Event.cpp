@@ -18,7 +18,7 @@ namespace Events
 		if (a_event.menuName == "LoadingMenu" and !a_event.opening) {
 			if (mainMenuClosed) {
 				StrippingArmor::MakeKeywordMapIfNeeded();
-				StrippingArmor::MakeArmorMapIfNeeded();
+				//StrippingArmor::MakeArmorMapIfNeeded();
 				NeedReset = true;
 			}
 		}
