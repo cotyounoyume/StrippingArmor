@@ -38,9 +38,27 @@ namespace Utility
 			logger::info("{}", message);
 	}
 
+	void SetLogLevel(int level)
+	{
+		LogLevel = level;
+	}
+
+	void Error(std::string message)
+	{
+		if (LogLevel <= 2)
+			Notification(message);
+	}
+
 	void Info(std::string message)
 	{
-		Notification(message);
+		if (LogLevel <= 1)
+			Notification(message);
+	}
+
+	void Debug(std::string message)
+	{
+		if (LogLevel <= 0)
+			Notification(message);
 	}
 
 	void Notify(std::string message)
@@ -152,11 +170,10 @@ namespace Utility
 	RE::BGSKeyword* GetKeywordFromID(int formID, int modIndex)
 	{
 		int  fullFormID = modIndex * (1 << 24) + formID;
-		//Info(format("GetKeywordFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
 
 		auto form = RE::TESForm::LookupByID<RE::BGSKeyword>(fullFormID);
 		if (!form) {
-			Info(format("ERROR: can't find id:{}", Utility::num2hex(fullFormID)));
+			Error(format("can't find id:{}", Utility::num2hex(fullFormID)));
 			return nullptr;
 		}
 		return form;
@@ -219,7 +236,7 @@ namespace Utility
 	{
 		auto form = RE::TESForm::LookupByEditorID<RE::BGSKeyword>(editorID.c_str());
 		if (!form) {
-			Info(fmt::format("keyword({}) was not found.", editorID));
+			Error(fmt::format("keyword({}) was not found.", editorID));
 			return nullptr;
 		}
 		return form;
@@ -231,7 +248,7 @@ namespace Utility
 		int  fullFormID = modIndex * (1 << 24) + formID;
 		auto form = RE::TESForm::LookupByID<RE::TESObjectMISC>(fullFormID);
 		if (!form) {
-			Info(fmt::format("formID:{} was not found", Utility::num2hex(fullFormID)));
+			Error(fmt::format("formID:{} was not found", Utility::num2hex(fullFormID)));
 			return nullptr;
 		}
 		return form;
@@ -242,15 +259,15 @@ namespace Utility
 	{
 		auto tmp = RE::TESForm::LookupByEditorID(editorID.c_str());
 		if (!tmp) {
-			Info(fmt::format("tmp({}) was not found.", editorID));
+			Error(fmt::format("tmp({}) was not found.", editorID));
 		}
 		auto tmp2 = static_cast<RE::TESObjectMISC*>(tmp);
 		if (!tmp2) {
-			Info(fmt::format("tmp2({}) was not found.", editorID));
+			Error(fmt::format("tmp2({}) was not found.", editorID));
 		}
 		auto form = RE::TESForm::LookupByEditorID<RE::TESObjectMISC>(editorID.c_str());
 		if (!form) {
-			Info(fmt::format("misc({}) was not found.", editorID));
+			Error(fmt::format("misc({}) was not found.", editorID));
 			return nullptr;
 		}
 		if (!form && tmp2)
@@ -262,7 +279,7 @@ namespace Utility
 	{
 		auto form = RE::TESForm::LookupByEditorID<RE::TESObjectWEAP>(editorID.c_str());
 		if (!form) {
-			Info(fmt::format("weapon({}) was not found.", editorID));
+			Error(fmt::format("weapon({}) was not found.", editorID));
 			return nullptr;
 		}
 		return form;
@@ -274,12 +291,12 @@ namespace Utility
 		//Info(format("GetArmorFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
 		auto form = RE::TESForm::LookupByID(fullFormID);
 		if (!form) {
-			Info(format("ERROR: can't find id:{}", Utility::num2hex(fullFormID)));
+			Error(format("ERROR: can't find id:{}", Utility::num2hex(fullFormID)));
 			return nullptr;
 		}
 		auto form2 = static_cast<RE::TESBoundObject*>(form);
 		if (!form2) {
-			Info(format("ERROR: can't cast id:{}, {}", Utility::num2hex(fullFormID), form2->GetFormEditorID()));
+			Error(format("ERROR: can't cast id:{}, {}", Utility::num2hex(fullFormID), form2->GetFormEditorID()));
 			return nullptr;
 		}
 		return form2;
@@ -289,7 +306,7 @@ namespace Utility
 	{
 		auto form = RE::TESForm::LookupByEditorID(editorID.c_str());
 		if (!form) {
-			Info(format("armor({}) was not found.", editorID));
+			Error(format("armor({}) was not found.", editorID));
 			return nullptr;
 		}
 		auto armor = static_cast<RE::TESBoundObject*>(form);
@@ -300,7 +317,7 @@ namespace Utility
 	{
 		auto form = RE::TESForm::LookupByEditorID<RE::TESObjectARMO>(editorID.c_str());
 		if (!form) {
-			Info(format("armor({}) was not found.", editorID));
+			Error(format("armor({}) was not found.", editorID));
 			return nullptr;
 		}
 		return form;
@@ -312,12 +329,12 @@ namespace Utility
 		//Info(format("GetArmorFromID: TEST: idDec:{}, idHex:{}", fullFormID, Utility::num2hex(fullFormID)));
 		auto form = RE::TESForm::LookupByID(fullFormID);
 		if (!form) {
-			Info(format("ERROR: can't find id:{}", Utility::num2hex(fullFormID)));
+			Error(format("can't find id:{}", Utility::num2hex(fullFormID)));
 			return nullptr;
 		}
 		auto form2 = static_cast<RE::TESBoundObject*>(form);
 		if (!form2) {
-			Info(format("ERROR: can't cast id:{}, {}", Utility::num2hex(fullFormID), form2->GetFormEditorID()));
+			Error(format("can't cast id:{}, {}", Utility::num2hex(fullFormID), form2->GetFormEditorID()));
 			return nullptr;
 		}
 		return form2;
@@ -468,7 +485,7 @@ namespace Utility
 			if (item.object->Is(RE::FormType::kMISC)) {
 				auto misc = BoundObjectToMisc(item.object);
 				if (!misc)
-					Info(fmt::format("id:{} can't convert MISC.", num2hex(item.object->formID)));
+					Error(fmt::format("id:{} can't convert MISC.", num2hex(item.object->formID)));
 				else {
 					MiscForScanner[misc] += GetEquipmentStackCount(item);
 					Info(fmt::format("->CollectInventoryMiscItems: item :{}", misc->GetFormEditorID()));
@@ -498,15 +515,9 @@ namespace Utility
 
 	RE::TESObjectMISC* BoundObjectToMisc(RE::TESBoundObject* item)
 	{
-		Info(fmt::format("debug: pre"));
 		if (!item || !item->Is(RE::FormType::kMISC))
 			return nullptr;
-		Info(fmt::format("debug: post: item:{}", num2hex(item->formID)));
-		auto misc2 = RE::TESForm::LookupByEditorID(item->GetFormEditorID());
-		auto misc2a = static_cast<RE::TESObjectMISC*>(misc2);
 		auto misc = RE::TESForm::LookupByEditorID<RE::TESObjectMISC>(item->GetFormEditorID());
-		Info(fmt::format("debug: post2: misc ISNULL:{}", misc == nullptr));
-		Info(fmt::format("debug: post2: misc2a ISNULL:{}", misc2a == nullptr));
 		return misc;
 	}
 
