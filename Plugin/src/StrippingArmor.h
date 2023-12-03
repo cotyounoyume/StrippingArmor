@@ -32,7 +32,7 @@ namespace StrippingArmor
 	void                                                        PrepareForCorpseLooted();
 
 	bool                                                        MCHasKeyword(RE::TESObjectREFR* object, std::string keywordString);
-	void                                                        ReadyForLoot2(RE::TESObjectREFR* actor);
+	void                                                        ReadyForLoot(RE::TESObjectREFR* actor);
 	void                                                        LootAndRemove();
 	bool                                                        IsTapped();
 	bool                                                        IsReady();
@@ -148,5 +148,7 @@ namespace StrippingArmor
 		"SAPickpocketSpacesuit",
 		"SAPickpocketHelmet",
 		"SAPickpocketBackpack",
+		"SAPickpocketDone",
+		"SAPickpocketStart",
 	};
 }

@@ -2,357 +2,143 @@
 
 namespace Config
 {
-	void SetTraditionalLootingOnly()
+	void SetTomlPath()
 	{
-		Info(fmt::format("StrippingArmor: TraditionalLootingOnlyOn. Disable other functions."));
-		StrippingKeyOn = false;
-		EffectOn = false;
-		EffectForCorpseOn = false;
-		AlternativeClothOn = false;
-		UseStrippingKeyToCorpse = false;
-		ChangingAppearanceOfCorpse = false;
-		EnableDroppingItemsOn = false;
-		CanStealDroppedItemOn = false;
-		DebugExecuteToAllActorsOn = false;
-		DebugExecuteToCrossRefActorForcedOn = false;
-		TimePerFrame = 50;
+		constexpr auto        pathString = L"Data/SFSE/Plugins/StrippingArmor.ini";
+		std::filesystem::path path = std::filesystem::path(pathString);
+		if (!std::filesystem::exists(path)) {
+			Error(fmt::format("path:{} not found", path.string()));
+			return;
+		}
+
+		Info(fmt::format("StrippingArmor: path={}", path.string()));
+		TomlConfig = toml::parse_file(path.string());
 	}
 
 	void ReadIni()
 	{
-		constexpr auto        pathString = L"Data/SFSE/Plugins/StrippingArmor.ini";
-		std::filesystem::path path = std::filesystem::path(pathString);
-		if (!std::filesystem::exists(path))
-			return;
+		SetTomlPath();
 
-		Info(fmt::format("StrippingArmor: path={}", path.string()));
-		auto config = toml::parse_file(path.string());
+		DumpSettings();
+		for (auto category : Categories) {
+			auto boolMap = GetBoolMapByCategory(category);
+			for (auto itr = (*boolMap).begin(); itr != (*boolMap).end(); ++itr) {
+				ReadConfigBool(category, itr->first);
+			}
 
-		std::string traditionalLootingOnlyOn = config["Config"]["TraditionalLootingOnly"].value_or("");
-		if (traditionalLootingOnlyOn == "")
-			return;
-		if (traditionalLootingOnlyOn == "True" || traditionalLootingOnlyOn == "true") {
+			auto stringMap = GetStringMapByCategory(category);
+			for (auto itr = (*stringMap).begin(); itr != (*stringMap).end(); ++itr) {
+				ReadConfigString(category, itr->first);
+			}
+
+			auto intMap = GetIntMapByCategory(category);
+			for (auto itr = (*intMap).begin(); itr != (*intMap).end(); ++itr) {
+				ReadConfigInt(category, itr->first);
+			}
+		}
+
+		DumpSettings();
+
+		if (GetTraditionalLootingOn())
 			SetTraditionalLootingOnly();
-			return;
-		}
 
-		std::string key = config["Config"]["StrippingKey"].value_or("");
-		if (key != "") {
-			StrippingKey = key;
-			Info(fmt::format("StrippingArmor: key={}, keynum={}", key, key.c_str()[0]));
-		}
-
-		std::string strippingKeyOn = config["Config"]["StrippingKeyOn"].value_or("");
-		if (strippingKeyOn != "") {
-			StrippingKeyOn = (strippingKeyOn == "True" || strippingKeyOn == "true");
-			Info(fmt::format("StrippingArmor: strippingKeyOn={}, StrippingKeyOn={}", strippingKeyOn, StrippingKeyOn));
-		}
-
-		std::string effect = config["Config"]["EffectShaderForStrippingOn"].value_or("");
-		if (effect != "") {
-			EffectOn = (effect == "True" || effect == "true");
-			Info(fmt::format("StrippingArmor: effect={}, EffectOn={}", effect, EffectOn));
-		}
-
-		std::string effectForCorpse = config["Config"]["EffectShaderForChangingCorpseOn"].value_or("");
-		if (effectForCorpse != "") {
-			EffectForCorpseOn = (effectForCorpse == "True" || effectForCorpse == "true");
-			Info(fmt::format("StrippingArmor: effectForCorpse={}, EffectForCorpse={}", effect, EffectForCorpseOn));
-		}
-
-		std::string effectFormID = config["Config"]["EffectShaderFormIDForStripping"].value_or("");
-		if (effectFormID != "") {
-			EffectFormID = effectFormID;
-			Info(fmt::format("StrippingArmor: effectFormID={}, EffectFormID={}", effectFormID, EffectFormID));
-		}
-
-		std::string alternativeCloth = config["Config"]["AlternativeClothOn"].value_or("");
-		if (alternativeCloth != "") {
-			AlternativeClothOn = (alternativeCloth == "True" || alternativeCloth == "true");
-			Info(fmt::format("StrippingArmor: alternativeCloth={}, AlternativeClothOn={}", alternativeCloth, AlternativeClothOn));
-		}
-
-		std::string useStrippingKeyToCorpse = config["Config"]["UseStrippingKeyToCorpse"].value_or("");
-		if (useStrippingKeyToCorpse != "") {
-			UseStrippingKeyToCorpse = (useStrippingKeyToCorpse == "True" || useStrippingKeyToCorpse == "true");
-			Info(fmt::format("StrippingArmor: useStrippingKeyToCorpse={}, UseStrippingKeyToCorpse={}", useStrippingKeyToCorpse, UseStrippingKeyToCorpse));
-		}
-
-		std::string changingAppearanceOfCorpse = config["Config"]["ChangingAppearanceOfCorpse"].value_or("");
-		if (changingAppearanceOfCorpse != "") {
-			ChangingAppearanceOfCorpse = (changingAppearanceOfCorpse == "True" || changingAppearanceOfCorpse == "true");
-			Info(fmt::format("StrippingArmor: changingAppearanceOfCorpse={}, ChangingAppearanceOfCorpse={}", changingAppearanceOfCorpse, ChangingAppearanceOfCorpse));
-		}
-
-		std::string enableDroppingItemsOn = config["Config"]["EnableDroppingItems"].value_or("");
-		if (enableDroppingItemsOn != "") {
-			EnableDroppingItemsOn = (enableDroppingItemsOn == "True" || enableDroppingItemsOn == "true");
-			Info(fmt::format("StrippingArmor: enableDroppingItemsOn={}, EnableDroppingItemsOn={}", enableDroppingItemsOn, EnableDroppingItemsOn));
-		}
-
-		std::string canStealDroppedItemOn = config["Config"]["CanStealDroppedItem"].value_or("");
-		if (canStealDroppedItemOn != "") {
-			CanStealDroppedItemOn = (canStealDroppedItemOn == "True" || canStealDroppedItemOn == "true");
-			Info(fmt::format("StrippingArmor: canStealDroppedItemOn={}, CanStealDroppedItemOn={}", canStealDroppedItemOn, CanStealDroppedItemOn));
-		}
-
-		std::string conditionTalkingOn = config["Config"]["ConditionTalking"].value_or("");
-		if (conditionTalkingOn != "") {
-			ConditionTalkingOn = (conditionTalkingOn == "True" || conditionTalkingOn == "true");
-			Info(fmt::format("StrippingArmor: conditionTalkingOn={}, ConditionTalkingOn={}", conditionTalkingOn, ConditionTalkingOn));
-		}
-
-		std::string conditionSleepingOn = config["Config"]["ConditionSleeping"].value_or("");
-		if (conditionSleepingOn != "") {
-			ConditionSleepingOn = (conditionSleepingOn == "True" || conditionSleepingOn == "true");
-			Info(fmt::format("StrippingArmor: conditionSleepingOn={}, ConditionSleepingOn={}", conditionSleepingOn, ConditionSleepingOn));
-		}
-
-		std::string conditionUnconsciousOn = config["Config"]["ConditionUnconscious"].value_or("");
-		if (conditionUnconsciousOn != "") {
-			ConditionUnconsciousOn = (conditionUnconsciousOn == "True" || conditionUnconsciousOn == "true");
-			Info(fmt::format("StrippingArmor: conditionUnconsciousOn={}, ConditionUnconsciousOn={}", conditionUnconsciousOn, ConditionUnconsciousOn));
-		}
-
-		std::string conditionIsCommandedOn = config["Config"]["ConditionIsCommanded"].value_or("");
-		if (conditionIsCommandedOn != "") {
-			ConditionIsCommandedOn = (conditionIsCommandedOn == "True" || conditionIsCommandedOn == "true");
-			Info(fmt::format("StrippingArmor: conditionIsCommandedOn={}, ConditionIsCommandedOn={}", conditionIsCommandedOn, ConditionIsCommandedOn));
-		}
-
-		std::string conditionPickingPocketOn = config["Config"]["ConditionPickingPocket"].value_or("");
-		if (conditionPickingPocketOn != "") {
-			ConditionPickingPocketOn = (conditionPickingPocketOn == "True" || conditionPickingPocketOn == "true");
-			Info(fmt::format("StrippingArmor: conditionPickingPocketOn={}, ConditionPickingPocketOn={}", conditionPickingPocketOn, ConditionPickingPocketOn));
-		}
-
-		std::string conditionBleedingOutOn = config["Config"]["ConditionBleedingOut"].value_or("");
-		if (conditionBleedingOutOn != "") {
-			ConditionBleedingOutOn = (conditionBleedingOutOn == "True" || conditionBleedingOutOn == "true");
-			Info(fmt::format("StrippingArmor: conditionBleedingOutOn={}, ConditionBleedingOutOn={}", conditionBleedingOutOn, ConditionBleedingOutOn));
-		}
-
-		std::string debugExecuteToAllActorsOn = config["Config"]["DebugExecuteToAllActorsInSameCell"].value_or("");
-		if (debugExecuteToAllActorsOn != "") {
-			DebugExecuteToAllActorsOn = (debugExecuteToAllActorsOn == "True" || debugExecuteToAllActorsOn == "true");
-			Info(fmt::format("StrippingArmor: debugExecuteToAllActorsOn={}, DebugExecuteToAllActorsOn={}", debugExecuteToAllActorsOn, DebugExecuteToAllActorsOn));
-		}
-
-		std::string debugExecuteToCrossRefActorForcedOn = config["Config"]["DebugExecuteToCrossRefActorForced"].value_or("");
-		if (debugExecuteToCrossRefActorForcedOn != "") {
-			DebugExecuteToCrossRefActorForcedOn = (debugExecuteToCrossRefActorForcedOn == "True" || debugExecuteToCrossRefActorForcedOn == "true");
-			Info(fmt::format("StrippingArmor: debugExecuteToCrossRefActorForcedOn={}, DebugExecuteToCrossRefActorForcedOn={}", debugExecuteToCrossRefActorForcedOn, DebugExecuteToCrossRefActorForcedOn));
-		}
-
-		std::string perfectTouchOn = config["Config"]["PerfectTouch"].value_or("");
-		if (perfectTouchOn != "") {
-			PerfectTouchOn = (perfectTouchOn == "True" || perfectTouchOn == "true");
-			Info(fmt::format("StrippingArmor: perfectTouchOn={}, PerfectTouchOn={}", perfectTouchOn, PerfectTouchOn));
-		}
-
-		std::string corpseTimer = config["Config"]["CorpseTimer"].value_or("");
-		if (corpseTimer == "") {
-			CorpseTimer = 5;
-		}
-		try {
-			CorpseTimer = stoi(corpseTimer);
-		} catch (std::exception const& e) {
-			Info(fmt::format("StrippingArmor: Exception in Config.cpp: corpseTimer is not number:{}", corpseTimer));
-			CorpseTimer = 5;
-		}
-		Info(fmt::format("StrippingArmor: corpseTimer={}, CorpseTimer={}", corpseTimer, CorpseTimer));
-
-		std::string repickTimer = config["Config"]["TakingBackEquipmentTimer"].value_or("");
-		if (repickTimer == "") {
-			RePickTimer = 5;
-		}
-		try {
-			RePickTimer = stoi(repickTimer);
-		} catch (std::exception const& e) {
-			Info(fmt::format("StrippingArmor: Exception in Config.cpp: repickTimer is not number:{}", repickTimer));
-			RePickTimer = 5;
-		}
-		Info(fmt::format("StrippingArmor: repickTimer={}, RePickTimer={}", repickTimer, RePickTimer));
-
-		std::string timePerFrame = config["Config"]["TimePerFrame"].value_or("");
-		if (timePerFrame == "") {
-			TimePerFrame = 50;
-		}
-		try {
-			TimePerFrame = stoi(timePerFrame);
-		} catch (std::exception const& e) {
-			Info(fmt::format("StrippingArmor: Exception in Config.cpp: timePerFrame is not number:{}", timePerFrame));
-			TimePerFrame = 50;
-		}
-		Info(fmt::format("StrippingArmor: timePerFrame={}, TimePerFrame={}", timePerFrame, TimePerFrame));
-
-
-		std::string ppHat = config["Config"]["PickpocketLevelHat"].value_or("");
-		if (ppHat != "") {
-			try {
-				PickpocketHat = stoi(ppHat);
-			} catch (std::exception const& e) {
-				Info(fmt::format("StrippingArmor: Exception in Config.cpp: ppHat is not number:{}", ppHat));
-			}
-		}
-		Info(fmt::format("StrippingArmor: ppHat={}, PickpocketHat={}", ppHat, PickpocketHat));
-
-
-		std::string ppCloth = config["Config"]["PickpocketLevelCloth"].value_or("");
-		if (ppCloth != "") {
-			try {
-				PickpocketCloth = stoi(ppCloth);
-			} catch (std::exception const& e) {
-				Info(fmt::format("StrippingArmor: Exception in Config.cpp: ppHat is not number:{}", ppCloth));
-			}
-		}
-		Info(fmt::format("StrippingArmor: ppCloth={}, PickpocketCloth={}", ppCloth, PickpocketCloth));
-
-		std::string ppHelmet = config["Config"]["PickpocketLevelHelmet"].value_or("");
-		if (ppHelmet != "") {
-			try {
-				PickpocketHelmet = stoi(ppHelmet);
-			} catch (std::exception const& e) {
-				Info(fmt::format("StrippingArmor: Exception in Config.cpp: ppHelmet is not number:{}", ppHelmet));
-			}
-		}
-		Info(fmt::format("StrippingArmor: ppHelmet={}, PickpocketHelmet={}", ppHelmet, PickpocketHelmet));
-
-		std::string ppBackpack = config["Config"]["PickpocketLevelBackpack"].value_or("");
-		if (ppBackpack != "") {
-			try {
-				PickpocketBackpack = stoi(ppBackpack);
-			} catch (std::exception const& e) {
-				Info(fmt::format("StrippingArmor: Exception in Config.cpp: ppBackpack is not number:{}", ppBackpack));
-			}
-		}
-		Info(fmt::format("StrippingArmor: ppBackpack={}, PickpocketBackpack={}", ppBackpack, PickpocketBackpack));
-
-		std::string ppSpacesuit = config["Config"]["PickpocketLevelSpacesuit"].value_or("");
-		if (ppSpacesuit != "") {
-			try {
-				PickpocketSpacesuit = stoi(ppSpacesuit);
-			} catch (std::exception const& e) {
-				Info(fmt::format("StrippingArmor: Exception in Config.cpp: ppSpacesuit is not number:{}", ppSpacesuit));
-			}
-		}
-		Info(fmt::format("StrippingArmor: ppSpacesuit={}, PickpocketSpacesuit={}", ppSpacesuit, PickpocketSpacesuit));
+		U::SetLogLevel(GetLogLevel());
 	}
 
-	std::string GetStrippingKey()
+	void DumpSettings()
 	{
-		return StrippingKey;
+		for (auto category : Categories) {
+			auto boolMap = GetBoolMapByCategory(category);
+			for (auto itr = (*boolMap).begin(); itr != (*boolMap).end(); ++itr) {
+				Info(fmt::format("Bool: category:{}, name:{}, value:{}", category, itr->first, itr->second));
+			}
+
+			auto stringMap = GetStringMapByCategory(category);
+			for (auto itr = (*stringMap).begin(); itr != (*stringMap).end(); ++itr) {
+				Info(fmt::format("String: category:{}, name:{}, value:{}", category, itr->first, itr->second));
+			}
+
+			auto intMap = GetIntMapByCategory(category);
+			for (auto itr = (*intMap).begin(); itr != (*intMap).end(); ++itr) {
+				Info(fmt::format("Int: category:{}, name:{}, value:{}", category, itr->first, itr->second));
+			}
+		}
 	}
+
+	void SetTraditionalLootingOnly()
+	{
+		Info(fmt::format("StrippingArmor: TraditionalLootingOnlyOn. Disable other functions."));
+		SettingsBoolMapGeneralMajor["StrippingKeyOn"] = false;
+		SettingsBoolMapGeneralMajor["EffectShaderForStrippingOn"] = false;
+		SettingsBoolMapGeneralMajor["UseStrippingKeyToCorpse"] = false;
+		SettingsBoolMapGeneralMajor["EnableDroppingItems"] = false;
+		SettingsBoolMapGeneralMajor["CanStealDroppedItem"] = false;
+
+		SettingsBoolMapGeneralMinor["AlternativeClothOn"] = false;
+		SettingsIntMapGeneralMinor["TimePerFrame"] = 50;
+
+		SettingsBoolMapGeneralMinor["DebugExecuteToAllActorsInSameCell"] = false;
+		SettingsBoolMapGeneralMinor["DebugExecuteToCrossRefActorForced"] = false;
+
+		SettingsBoolMapCorpseVisualEffect["ChangingAppearanceOfCorpse"] = false;
+		SettingsBoolMapCorpseVisualEffect["EffectShaderForChangingCorpseOn"] = false;
+	}
+
+	//GeneralMajor
+	bool GetTraditionalLootingOn() { return SettingsBoolMapGeneralMajor["TraditionalLootingOnly"]; }
+
+	bool GetStrippingKeyOn() { return SettingsBoolMapGeneralMajor["StrippingKeyOn"]; }
+
+	bool GetEffectEnabled() { return SettingsBoolMapGeneralMajor["EffectShaderForStrippingOn"]; }
+
+	bool GetUseStrippingKeyToCorpse(){ return SettingsBoolMapGeneralMajor["UseStrippingKeyToCorpse"]; }
+
+	bool GetEnableDroppingItemsOn() { return SettingsBoolMapGeneralMajor["EnableDroppingItems"]; }
+
+	bool GetCanStealDroppedItemOn() { return SettingsBoolMapGeneralMajor["CanStealDroppedItem"]; }
+
+	//GeneralMinor
+	bool GetAlternativeClothEnabled() { return SettingsBoolMapGeneralMinor["AlternativeClothOn"]; }
+
+	bool GetConditionTalkingOn() { return SettingsBoolMapGeneralMinor["ConditionTalking"]; }
+
+	bool GetConditionSleepingOn() { return SettingsBoolMapGeneralMinor["ConditionSleeping"]; }
+
+	bool GetConditionUnconsciousOn() { return SettingsBoolMapGeneralMinor["ConditionUnconscious"]; }
+
+	bool GetConditionIsCommandedOn() { return SettingsBoolMapGeneralMinor["ConditionIsCommanded"]; }
+
+	bool GetConditionBleedingOutOn() { return SettingsBoolMapGeneralMinor["ConditionBleedingOut"]; }
+
+	//CorpseVisualEffect
+	bool GetChangingAppearanceOfCorpseEnabled() { return SettingsBoolMapCorpseVisualEffect["ChangingAppearanceOfCorpse"]; }
+
+	bool GetEffectForCorpseEnabled() { return SettingsBoolMapCorpseVisualEffect["EffectShaderForChangingCorpseOn"]; }
+
+	//Theft
+	bool GetPerfectTouchOn() { return SettingsBoolMapTheft["PerfectTouch"]; }
+
+	bool GetConditionPickingPocketOn() { return SettingsBoolMapTheft["ConditionPickingPocket"]; }
+
+	//Debug
+	bool GetDebugExecuteToAllActorsOn() { return SettingsBoolMapDebug["DebugExecuteToAllActorsInSameCell"]; }
+
+	bool GetDebugExecuteToCrossRefActorForcedOn() { return SettingsBoolMapDebug["DebugExecuteToCrossRefActorForced"]; }
+
+	std::string GetStrippingKey() { return SettingsStringMapGeneralMajor["StrippingKey"]; }
 
 	char GetStrippingKeyNumber()
-	{
-		return StrippingKey.c_str()[0];
+	{ 
+		return SettingsStringMapGeneralMajor["StrippingKey"].c_str()[0];
 	}
 
-	bool GetEffectEnabled()
-	{
-		return EffectOn;
-	}
+	std::string GetEffectFormID() { return SettingsStringMapGeneralMinor["EffectShaderFormIDForStripping"]; }
+	
+	int GetTimePerFrame() { return SettingsIntMapGeneralMinor["TimePerFrame"]; }
 
-	bool GetDebugExecuteToAllActorsOn()
-	{
-		return DebugExecuteToAllActorsOn;
-	}
+	int GetRePickTimer() { return SettingsIntMapGeneralMinor["TakingBackEquipmentTimer"]; }
 
-	bool GetDebugExecuteToCrossRefActorForcedOn()
-	{
-		return DebugExecuteToCrossRefActorForcedOn;
-	}
-
-	bool GetStrippingKeyOn()
-	{
-		return StrippingKeyOn;
-	}
-
-	bool GetEffectForCorpseEnabled()
-	{
-		return EffectForCorpseOn;
-	}
-
-	std::string GetEffectFormID()
-	{
-		return EffectFormID;
-	}
-
-	bool GetAlternativeClothEnabled()
-	{
-		return AlternativeClothOn;
-	}
-
-	bool GetChangingAppearanceOfCorpseEnabled()
-	{
-		return ChangingAppearanceOfCorpse;
-	}
-
-	int GetCorpseTimer()
-	{
-		return CorpseTimer;
-	}
-
-	int GetRePickTimer()
-	{
-		return RePickTimer;
-	}
-
-	bool GetUseStrippingKeyToCorpse()
-	{
-		return UseStrippingKeyToCorpse;
-	}
-
-	bool GetEnableDroppingItemsOn()
-	{
-		return EnableDroppingItemsOn;
-	}
-
-	bool GetConditionTalkingOn()
-	{
-		return ConditionTalkingOn;
-	}
-
-	bool GetConditionSleepingOn()
-	{
-		return ConditionSleepingOn;
-	}
-
-	bool GetConditionUnconsciousOn()
-	{
-		return ConditionUnconsciousOn;
-	}
-
-	bool GetConditionIsCommandedOn()
-	{
-		return ConditionIsCommandedOn;
-	}
-
-	bool GetConditionPickingPocketOn()
-	{
-		return ConditionPickingPocketOn;
-	}
-
-	bool GetConditionBleedingOutOn()
-	{
-		return ConditionBleedingOutOn;
-	}
-
-	bool GetPerfectTouchOn()
-	{
-		return PerfectTouchOn;
-	}
-
-	bool GetCanStealDroppedItemOn()
-	{
-		return CanStealDroppedItemOn;
-	}
-
-	int GetTimePerFrame()
-	{
-		return TimePerFrame;
-	}
+	int GetCorpseTimer() { return SettingsIntMapCorpseVisualEffect["CorpseTimer"]; }
 
 	int GetPPLevel(std::string type)
 	{
@@ -369,28 +155,102 @@ namespace Config
 		return 99;
 	}
 
-	int GetPPHat()
+	int GetPPHat() { return SettingsIntMapTheft["PickpocketLevelHat"]; }
+
+	int GetPPCloth() { return SettingsIntMapTheft["PickpocketLevelCloth"]; }
+
+	int GetPPHelmet() { return SettingsIntMapTheft["PickpocketLevelHelmet"]; }
+
+	int GetPPBackpack() { return SettingsIntMapTheft["PickpocketLevelBackpack"]; }
+
+	int GetPPSpacesuit() { return SettingsIntMapTheft["PickpocketLevelSpacesuit"]; }
+
+	int GetLogLevel() { return SettingsIntMapDebug["LogLevel"]; }
+
+	std::unordered_map<std::string, bool>* GetBoolMapByCategory(std::string category)
 	{
-		return PickpocketHat;
+		if (category == "GeneralMajor")
+			return &SettingsBoolMapGeneralMajor;
+		else if (category == "GeneralMinor")
+			return &SettingsBoolMapGeneralMinor;
+		else if (category == "CorpseVisualEffect")
+			return &SettingsBoolMapCorpseVisualEffect;
+		else if (category == "Theft")
+			return &SettingsBoolMapTheft;
+		else if (category == "Debug")
+			return &SettingsBoolMapDebug;
+
+		std::unordered_map<std::string, bool> result;
+		return &result;
 	}
 
-	int GetPPCloth()
+	std::unordered_map<std::string, std::string>* GetStringMapByCategory(std::string category)
 	{
-		return PickpocketCloth;
+		if (category == "GeneralMajor")
+			return &SettingsStringMapGeneralMajor;
+		else if (category == "GeneralMinor")
+			return &SettingsStringMapGeneralMinor;
+		else if (category == "CorpseVisualEffect")
+			return &SettingsStringMapCorpseVisualEffect;
+		else if (category == "Theft")
+			return &SettingsStringMapTheft;
+		else if (category == "Debug")
+			return &SettingsStringMapDebug;
+
+		std::unordered_map<std::string, std::string> result;
+		return &result;
 	}
 
-	int GetPPHelmet()
+	std::unordered_map<std::string, int>* GetIntMapByCategory(std::string category)
 	{
-		return PickpocketHelmet;
+		if (category == "GeneralMajor")
+			return &SettingsIntMapGeneralMajor;
+		else if (category == "GeneralMinor")
+			return &SettingsIntMapGeneralMinor;
+		else if (category == "CorpseVisualEffect")
+			return &SettingsIntMapCorpseVisualEffect;
+		else if (category == "Theft")
+			return &SettingsIntMapTheft;
+		else if (category == "Debug")
+			return &SettingsIntMapDebug;
+
+		std::unordered_map<std::string, int> result;
+		return &result;
 	}
 
-	int GetPPBackpack()
+	void ReadConfigBool(std::string category, std::string name)
 	{
-		return PickpocketBackpack;
+		auto        map = GetBoolMapByCategory(category);
+		std::string value = TomlConfig[category][name].value_or("");
+
+		if (value != "") {
+			(*map)[name] = (value == "True" || value == "true");
+			Debug(fmt::format("StrippingArmor: Category:{}, SettingName:{}, ConfigFileValue:{}, Settings:{}", category, name, value, (*map)[name]));
+		}
 	}
 
-	int GetPPSpacesuit()
+	void ReadConfigString(std::string category, std::string name)
 	{
-		return PickpocketSpacesuit;
+		auto        map = GetStringMapByCategory(category);
+		std::string value = TomlConfig[category][name].value_or("");
+
+		if (value != "") {
+			(*map)[name] = value;
+			Debug(fmt::format("StrippingArmor: Category:{}, SettingName:{}, ConfigFileValue:{}, Settings:{}", category, name, value, (*map)[name]));
+		}
+	}
+
+	void ReadConfigInt(std::string category, std::string name)
+	{
+		auto        map = GetIntMapByCategory(category);
+		std::string value = TomlConfig[category][name].value_or("");
+		if (value != "") {
+			try {
+				(*map)[name] = stoi(value);
+				Debug(fmt::format("StrippingArmor: Category:{}, SettingName:{}, ConfigFileValue:{}, Settings:{}", category, name, value, (*map)[name]));
+			} catch (std::exception const& e) {
+				Error(fmt::format("can't parse value:{} to int in Category:{}, SettingName:{}", value, category, name));
+			}
+		}
 	}
 }

@@ -46,6 +46,5 @@ namespace Events
 	{
 		RE::BSEventNotifyControl ProcessEvent(const RE::TESContainerChangedEvent& a_event, RE::BSTEventSource<RE::TESContainerChangedEvent>* a_eventSource) override;
 	};
-
-	void SetupForms();
-}  // namespace Events
+}  
+// namespace Events

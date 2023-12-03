@@ -9,7 +9,10 @@ namespace Utility
 	void Notification(std::string message);
 	void Notification(std::string message, bool flg);
 	void Info(std::string message);
+	void Debug(std::string message);
+	void Error(std::string message);
 	void Notify(std::string message);
+	void SetLogLevel(int level);
 
 	void        ExecuteCommandString(std::string command, std::string displayPrefix = "  ConsoleCommand: ");
 	void        ExecuteCommandStringOnFormID(int formID, std::string subCommand);
@@ -76,4 +79,5 @@ namespace Utility
 	inline std::unordered_map<RE::TESObjectWEAP*, int>          WeaponForScanner;
 	inline std::unordered_map<RE::TESObjectMISC*, int>          MiscForScanner;
 	inline std::string                                          ItemType;
+	inline int                                                  LogLevel = 0;
 }

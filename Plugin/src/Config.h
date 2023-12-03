@@ -3,39 +3,85 @@
 
 namespace Config
 {
-	inline bool        TraditionalLootingOnlyOn = true;
-	inline bool        PerfectTouchOn = true;
-	inline std::string StrippingKey = "T";
-	inline bool        EffectOn = true;
-	inline bool        StrippingKeyOn = true;
-	inline bool        EffectForCorpseOn = true;
-	inline std::string EffectFormID = "0002e54d";
-	inline bool        AlternativeClothOn = false;
-	inline bool        UseStrippingKeyToCorpse = false;
-	inline bool        ChangingAppearanceOfCorpse = true;
-	inline int         CorpseTimer = 5;
-	inline int         TimePerFrame = 50;
-	inline bool        EnableDroppingItemsOn = true;
-	inline int         RePickTimer = 5;
-	inline bool        CanStealDroppedItemOn = false;
-	inline bool        ConditionTalkingOn = true;
-	inline bool        ConditionSleepingOn = true;
-	inline bool        ConditionIsCommandedOn = true;
-	inline bool        ConditionUnconsciousOn = true;
-	inline bool        ConditionPickingPocketOn = true;
-	inline bool        ConditionBleedingOutOn = true;
-	//inline bool        EasyPickpocketOn = false;
-	inline bool        DebugExecuteToAllActorsOn = true;
-	inline bool        DebugExecuteToCrossRefActorForcedOn = true;
-	inline int         PickpocketHat = 1;
-	inline int         PickpocketHelmet = 1;
-	inline int         PickpocketCloth = 2;
-	inline int         PickpocketBackpack = 3;
-	inline int         PickpocketSpacesuit = 4;
-	
+	inline toml::v3::ex::parse_result            TomlConfig;
+	inline std::vector<std::string>   Categories = {
+        "GeneralMajor",
+        "GeneralMinor",
+        "CorpseVisualEffect",
+        "Theft",
+        "Debug",
+	};
+
+	inline std::unordered_map<std::string, bool> SettingsBoolMapGeneralMajor = {
+		{ "TraditionalLootingOnly", true },
+		{ "StrippingKeyOn", true },
+		{ "EffectShaderForStrippingOn", true },
+		{ "UseStrippingKeyToCorpse", true },
+		{ "EnableDroppingItems", true },
+		{ "CanStealDroppedItem", false },
+	};
+	inline std::unordered_map<std::string, bool> SettingsBoolMapGeneralMinor = {
+		{ "AlternativeClothOn", false },
+		{ "ConditionTalking", true },
+		{ "ConditionSleeping", true },
+		{ "ConditionUnconscious", true },
+		{ "ConditionIsCommanded", true },
+		{ "ConditionBleedingOut", true },
+	};
+	inline std::unordered_map<std::string, bool> SettingsBoolMapCorpseVisualEffect = {
+		{ "ChangingAppearanceOfCorpse", true },
+		{ "EffectShaderForChangingCorpseOn", true },
+	};
+	inline std::unordered_map<std::string, bool> SettingsBoolMapTheft = {
+		{ "PerfectTouch", true },
+		{ "ConditionPickingPocket", false },
+	};
+	inline std::unordered_map<std::string, bool> SettingsBoolMapDebug = {
+		{ "DebugExecuteToAllActorsInSameCell", false },
+		{ "DebugExecuteToCrossRefActorForced", false },
+	};
+
+	inline std::unordered_map<std::string, std::string> SettingsStringMapGeneralMajor = {
+		{ "StrippingKey", "T" },
+	};
+
+	inline std::unordered_map<std::string, std::string> SettingsStringMapGeneralMinor = {
+		{ "EffectShaderFormIDForStripping", "0026319b" },
+	};
+
+	inline std::unordered_map<std::string, std::string> SettingsStringMapCorpseVisualEffect = {};
+	inline std::unordered_map<std::string, std::string> SettingsStringMapTheft = {};
+	inline std::unordered_map<std::string, std::string> SettingsStringMapDebug = {};
+
+	inline std::unordered_map<std::string, int> SettingsIntMapGeneralMajor = {};
+
+	inline std::unordered_map<std::string, int> SettingsIntMapGeneralMinor = {
+		{ "TimePerFrame", 50 },
+		{ "TakingBackEquipmentTimer", 10 },
+	};
+
+	inline std::unordered_map<std::string, int> SettingsIntMapCorpseVisualEffect = {
+		{ "CorpseTimer", 3 },
+	};
+
+	inline std::unordered_map<std::string, int> SettingsIntMapTheft = {
+		{ "PickpocketLevelHat", 1 },
+		{ "PickpocketLevelHelmet", 1 },
+		{ "PickpocketLevelCloth", 2 },
+		{ "PickpocketLevelBackpack", 3 },
+		{ "PickpocketLevelSpacesuit", 4 },
+	};
+
+	inline std::unordered_map<std::string, int> SettingsIntMapDebug = {
+		{ "LogLevel", 0 },
+	};
 
 
 	void        ReadIni();
+	void        SetTraditionalLootingOnly();
+	void        SetTomlPath();
+	void        DumpSettings();
+	int         GetLogLevel();
 	std::string GetStrippingKey();
 	char        GetStrippingKeyNumber();
 	bool        GetEffectEnabled();
@@ -65,4 +111,12 @@ namespace Config
 	int         GetPPLevel(std::string type);
 	bool        GetDebugExecuteToAllActorsOn();
 	bool        GetDebugExecuteToCrossRefActorForcedOn();
+	bool        GetTraditionalLootingOn();
+
+	std::unordered_map<std::string, bool>*        GetBoolMapByCategory(std::string category);
+	std::unordered_map<std::string, std::string>* GetStringMapByCategory(std::string category);
+	std::unordered_map<std::string, int>*         GetIntMapByCategory(std::string category);
+	void                                          ReadConfigBool(std::string category, std::string name);
+	void                                          ReadConfigString(std::string category, std::string name);
+	void                                          ReadConfigInt(std::string category, std::string name);
 }

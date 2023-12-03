@@ -121,7 +121,7 @@ namespace StrippingArmor
 	{
 		auto cell = RE::PlayerCharacter::GetSingleton()->parentCell;
 		if (!cell) {
-			Info(format("can't get parentCell"));
+			Error(format("can't get parentCell"));
 			return;
 		}
 		int cnt = 0;
@@ -304,7 +304,7 @@ namespace StrippingArmor
 				continue;
 			}
 			if (!MCHasKeyword(member, "SAConditionNG") && !MCHasKeyword(member, "SAConditionOK")) {
-				Info(format("ERROR: MemberCheckerCandidate: member({}) has SACandidateCheckReady, but with no conditions.", member->GetFormEditorID()));
+				Error(format("MemberCheckerCandidate: member({}) has SACandidateCheckReady, but with no conditions.", member->GetFormEditorID()));
 				unlisted.push_back(member);
 				continue;
 			}
@@ -356,7 +356,7 @@ namespace StrippingArmor
 
 	void PrepareForCorpseLooted()
 	{
-		ReadyForLoot2(LastTarget);
+		ReadyForLoot(LastTarget);
 		LootedCorpseMap[LastTarget] = false;
 		StrippingKeyTappedMap[LastTarget] = false;
 		ReadyStateMap[LastTarget] = true;
@@ -375,11 +375,11 @@ namespace StrippingArmor
 	bool IsReady() { return ReadyStateMap[LastTarget]; }
 	bool IsLooted() { return LootedCorpseMap[LastTarget]; }
 
-	void ReadyForLoot2(RE::TESObjectREFR* actor)
+	void ReadyForLoot(RE::TESObjectREFR* actor)
 	{
 		if (actor == nullptr)
 			return;
-		Info(fmt::format("ReadyForLoot2: Start:  {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
+		Info(fmt::format("ReadyForLoot: Start:  {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
 		auto armorMap = Utility::CollectInventoryArmors(actor);
 		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			int  count = itr->second;
@@ -393,13 +393,15 @@ namespace StrippingArmor
 			}
 			U::AddItem(actor->formID, item->formID, 1);
 		}
-		Info(fmt::format("ReadyForLoot2: Finish: {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
+		Info(fmt::format("ReadyForLoot: Finish: {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
 		return;
 	}
 
 	void AddPickpocketItems(RE::TESObjectREFR* member)
 	{
 		int theftLevel = U::GetPerkLevel(RE::PlayerCharacter::GetSingleton(), 0x2c555b); //Skill Theft
+		Info(fmt::format("debug: GetTraditionalLootingOn():{}", Config::GetTraditionalLootingOn()));
+		Info(fmt::format("debug: GetTraditionalLootingOn():{}", Config::SettingsBoolMapGeneralMajor["TraditionalLootingOnly"]));
 
 		Info(format("AddPickpocketItems: {}", member->GetFormEditorID()));
 		if (member == nullptr)
@@ -426,6 +428,8 @@ namespace StrippingArmor
 			Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.SAAddKeywordFromSFSE\" \"{}\" \"{}\"",
 				member->formID, sKeyword));
 		}
+		Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.SAAddKeywordFromSFSE\" \"{}\" \"{}\"",
+			member->formID, "SAPickpocketStart"));
 	}
 
 	bool AllowTypeByTheftLevel(std::string type, int level)
@@ -473,7 +477,7 @@ namespace StrippingArmor
 				continue;
 			}
 			if (!armorMap.contains(part)) {
-				Info(fmt::format("ERROR: flagItem({}) exists, but, armor doesn't exist. skip and delete keyword({})", miscMap[part]->GetFormEditorID(), sKeyword));
+				Error(fmt::format("flagItem({}) exists, but, armor doesn't exist. skip and delete keyword({})", miscMap[part]->GetFormEditorID(), sKeyword));
 				RemoveKeyword(member, sKeyword);
 				continue;
 			}
@@ -724,7 +728,7 @@ namespace StrippingArmor
 	{
 		if (!member)
 			return false;
-		if (Utility::HasKeyword(member, "SAPickpocketDone"))
+		if (Utility::HasKeyword(member, "SAPickpocketStart"))
 			return true;
 		//Info(format("HasPickpocketItems:{} start", member->GetFormEditorID()));
 		auto items = Utility::CollectInventoryWeapons(LastTarget);
