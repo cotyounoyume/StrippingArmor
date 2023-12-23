@@ -22,7 +22,7 @@ namespace Utility
 	std::string GetFormIDsFromVector(std::vector<int> list, std::string separator, bool quoteOn, bool hexOn);
 
 	//common
-	bool                InGameScene();
+	bool                InGameScene(bool withOutMenu = false);
 	std::vector<int>    DecomposeSlot(uint32_t value);
 	bool                HasSlot(uint32_t value, int slot);
 	int                 GetModIndex(int formID, std::string name);

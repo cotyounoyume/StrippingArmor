@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "winuser.h"
 
 namespace Config
 {
@@ -11,6 +12,7 @@ namespace Config
         "Theft",
         "Debug",
 	};
+	inline bool tomlParseError = false;
 
 	inline std::unordered_map<std::string, bool> SettingsBoolMapGeneralMajor = {
 		{ "TraditionalLootingOnly", true },
@@ -19,6 +21,7 @@ namespace Config
 		{ "UseStrippingKeyToCorpse", true },
 		{ "EnableDroppingItems", true },
 		{ "CanStealDroppedItem", false },
+		{ "ToggleNormalOrOthers", false },		
 	};
 	inline std::unordered_map<std::string, bool> SettingsBoolMapGeneralMinor = {
 		{ "AlternativeClothOn", false },
@@ -43,6 +46,7 @@ namespace Config
 
 	inline std::unordered_map<std::string, std::string> SettingsStringMapGeneralMajor = {
 		{ "StrippingKey", "T" },
+		{ "ToggleKey", "O" },
 	};
 
 	inline std::unordered_map<std::string, std::string> SettingsStringMapGeneralMinor = {
@@ -83,7 +87,9 @@ namespace Config
 	void        DumpSettings();
 	int         GetLogLevel();
 	std::string GetStrippingKey();
+	std::string GetToggleKey();
 	char        GetStrippingKeyNumber();
+	char        GetToggleKeyNumber();
 	bool        GetEffectEnabled();
 	bool        GetStrippingKeyOn();
 	bool        GetEffectForCorpseEnabled();
@@ -112,6 +118,7 @@ namespace Config
 	bool        GetDebugExecuteToAllActorsOn();
 	bool        GetDebugExecuteToCrossRefActorForcedOn();
 	bool        GetTraditionalLootingOn();
+	bool        GetToggleNormalOrOthersOn();
 
 	std::unordered_map<std::string, bool>*        GetBoolMapByCategory(std::string category);
 	std::unordered_map<std::string, std::string>* GetStringMapByCategory(std::string category);

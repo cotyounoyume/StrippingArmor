@@ -7,6 +7,8 @@ project(
 	LANGUAGES CXX
 )
 
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};e:/Data/vcpkg/vcpkg/installed/x86-windows/share/spdlog;e:/Data/vcpkg/vcpkg/installed/x86-windows/share/tomlplusplus;")
+
 # boiler
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 
