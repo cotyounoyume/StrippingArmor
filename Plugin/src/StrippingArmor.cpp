@@ -223,6 +223,10 @@ namespace StrippingArmor
 		if (IsKeyPressed()) {
 			AddKeywordForCandidates(LastTarget, true, Config::GetDebugExecuteToCrossRefActorForcedOn());
 		}
+		if (IsToggleKeyPressed() && Config::GetToggleNormalOrOthersOn()) {
+			ToggleBodyRoute();
+		}
+
 	}
 
 	void StateTargetOffCrosshairOn_Common()
@@ -252,6 +256,11 @@ namespace StrippingArmor
 
 	void StateTargetOnCrosshairOn_CorpseRoute()
 	{
+		if (IsToggleKeyPressed() && Config::GetToggleNormalOrOthersOn()) {
+			ToggleBodyRoute();
+			return;
+		}
+
 		if (!IsKeyPressed()) {
 			if (IsTapped())
 				return;
@@ -712,13 +721,102 @@ namespace StrippingArmor
 		Info(fmt::format("DropEquipItems: finish {}:{}", Utility::num2hex(member->formID), member->GetFormEditorID()));
 	}
 
-	bool HasDummySuits(RE::TESObjectREFR* member)
+	void ToggleBodyRoute()
+	{
+		if (HasDummySuits(LastTarget, true)) {
+			Info(format("ToggleBodyRoute: {} has ToggleKeyword", LastTarget->GetFormEditorID()));
+			bool isSuit = IsSuit(LastTarget);
+			auto keywords = GetKeywordMapFromActor(LastTarget);
+			auto armor = GetArmorFromKeywordMap(keywords, isSuit);
+			Utility::EquipItem(LastTarget, armor->formID);
+			for (auto itr = keywords.begin(); itr != keywords.end(); ++itr) {
+				logger::info("Debug:{} RemoveKeyword:{}", LastTarget->GetFormEditorID(), itr->first);
+				RemoveKeyword(LastTarget, itr->first);
+			}
+		} else if (HasDummySuits(LastTarget)) {
+			Info(format("ToggleBodyRoute: {} has DummySuit", LastTarget->GetFormEditorID()));
+			bool isSuit = IsSuit(LastTarget);
+			auto keywords = GetKeywordMapFromArmor(LastTarget);
+			EquipToggleSuit(LastTarget, isSuit);
+			for (auto itr = keywords.begin(); itr != keywords.end(); ++itr) {
+				logger::info("Debug:{} AddKeyword:{}", LastTarget->GetFormEditorID(), itr->first);
+				AddKeyword(LastTarget, itr->first);
+			}
+		} else {
+			Info(format("ToggleBodyRoute: {} doesn't have keyword and suit", LastTarget->GetFormEditorID()));
+		}
+
+		//unko
+	}
+
+	RE::TESObjectARMO* GetArmorFromKeywordMap(std::unordered_map<std::string, bool> keywords, bool isSuit)
+	{
+		std::string armorName = "";
+		if (keywords.contains("SACorpseFrozen")) {
+			armorName = "Dummy_CorpseFrozen";
+		} else if (keywords.contains("SACorpseDusty")) {
+			armorName = "Dummy_CorpseDusty";
+		} else {
+			armorName = "Dummy_Normal";
+		}
+		if (keywords.contains("SAAltClothes")) {
+			armorName += "Alt";
+		}
+		armorName += isSuit ? "_Spacesuit" : "_Clothes";
+		return GetArmor(armorName);
+	}
+
+	std::unordered_map<std::string, bool> GetKeywordMapFromArmor(RE::TESObjectREFR* member)
+	{
+		auto result = std::unordered_map<std::string, bool>();
+		auto armors = Utility::CollectEquipArmors(LastTarget);
+		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
+			auto item = itr->first;
+			if (Utility::HasKeyword(item, "ArmorTypeSpacesuitBody") || Utility::HasKeyword(item, "ArmorTypeApparelOrNakedBody")) {
+				auto name = std::string(item->GetFormEditorID());
+				if (name.contains("Alt"))
+					result["SAAltClothes"] = true;
+				if (name.contains("Frozen"))
+					result["SACorpseFrozen"] = true;
+				if (name.contains("Dusty"))
+					result["SACorpseDusty"] = true;
+			}
+		}		
+		return result;
+	}
+
+	std::unordered_map<std::string, bool> GetKeywordMapFromActor(RE::TESObjectREFR* member)
+	{
+		auto result = std::unordered_map<std::string, bool>();
+
+		if (Utility::HasKeyword(member, "SAAltClothes"))
+			result["SAAltClothes"] = true;
+		if (Utility::HasKeyword(member, "SACorpseFrozen"))
+			result["SACorpseFrozen"] = true;
+		if (Utility::HasKeyword(member, "SACorpseDusty"))
+			result["SACorpseDusty"] = true;
+		return result;
+	}
+
+	bool IsSuit(RE::TESObjectREFR* member)
+	{
+		auto armors = Utility::CollectEquipArmors(LastTarget);
+		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
+			auto item = itr->first;
+			if (Utility::HasKeyword(item, "ArmorTypeSpacesuitBody")) {
+				return true;
+			}
+		}		
+		return false;
+	}
+
+	bool HasDummySuits(RE::TESObjectREFR* member, bool isToggle)
 	{
 		auto armors = Utility::CollectEquipArmors(LastTarget);
 		for (auto itr = armors.begin(); itr != armors.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
-			if (IsDummySuits(item))
+			if (IsDummySuits(item, isToggle))
 				return true;
 		}
 		return false;
@@ -834,6 +932,19 @@ namespace StrippingArmor
 		Info(format("EquipDummysuit: finish: {}", member->GetFormEditorID()));
 	}
 
+	void EquipToggleSuit(RE::TESObjectREFR* member, bool isSuit)
+	{
+		if (member == nullptr)
+			return;
+		Info(format("EquipToggleSuit: start: {}", member->GetFormEditorID()));
+
+		auto editorID = isSuit ? "Dummy_Toggle_Spacesuit" : "Dummy_Toggle_Clothes";
+		auto armor = GetArmor(editorID);
+		Utility::ExecuteCommandStringOnFormID(member->formID, fmt::format("EquipItem {}", Utility::num2hex(armor->formID)));
+
+		Info(format("EquipToggleSuit: finish: {}", member->GetFormEditorID()));
+	}
+
 	void DoEffectShader(RE::TESObjectREFR* member)
 	{
 		if (!Config::GetEffectEnabled())
@@ -891,6 +1002,20 @@ namespace StrippingArmor
 			return false;
 		}
 		bool result = SFSE::WinAPI::GetKeyState(Config::GetStrippingKeyNumber()) & 0x8000;
+		if (result)
+			WaitCount = WaitCountPlus;
+		return result;
+	}
+
+	bool IsToggleKeyPressed()
+	{
+		if (!Config::GetToggleNormalOrOthersOn())
+			return false;
+		if (WaitCount > 0) {
+			WaitCount--;
+			return false;
+		}
+		bool result = SFSE::WinAPI::GetKeyState(Config::GetToggleKeyNumber()) & 0x8000;
 		if (result)
 			WaitCount = WaitCountPlus;
 		return result;
@@ -987,10 +1112,12 @@ namespace StrippingArmor
 		return result;
 	}
 
-	bool IsDummySuits(RE::TESObjectARMO* armor)
+	bool IsDummySuits(RE::TESObjectARMO* armor, bool isToggle)
 	{
 		if (!armor)
 			return false;
+		if(isToggle)
+			return armor->ContainsKeywordString("SAThisIsForToggle");
 		return armor->ContainsKeywordString("DontStripThis");
 	}
 

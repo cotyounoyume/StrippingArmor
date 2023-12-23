@@ -66,11 +66,14 @@ namespace Utility
 		Notification(message, true);
 	}
 
-	bool InGameScene()
+	bool InGameScene(bool withOutMenu)
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (player == nullptr)
 			return false;
+		if (withOutMenu)
+			return true;
+
 		if(RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"))
 			return true;
 		if (RE::UI::GetSingleton()->IsMenuOpen("Console"))

@@ -53,10 +53,13 @@ namespace StrippingArmor
 	void                                                        RemoveEquipItems(bool leftOne);
 	bool                                                        NeedDummysuit(RE::TESObjectREFR* member);
 	void                                                        EquipDummysuit(RE::TESObjectREFR* member);
+	void                                                        EquipToggleSuit(RE::TESObjectREFR* member, bool isSuit);
 	void                                                        DoEffectShader(RE::TESObjectREFR* member);
 	RE::TESObjectARMO*                                          GetCorpsesuit(RE::TESObjectREFR* member);
 	int                                                         GetArmorClothCombination(RE::TESObjectREFR* member);
 	bool                                                        IsKeyPressed();
+	bool                                                        IsToggleKeyPressed();
+	void                                                        ToggleBodyRoute();
 	void                                                        ChangingCorpse2(RE::TESObjectREFR* targetActor, int HighOrLow);
 	RE::TESObjectARMO*                                          GetArmor(std::string editorID);
 	RE::BGSKeyword*                                             GetKeyword(std::string editorID);
@@ -65,9 +68,10 @@ namespace StrippingArmor
 	std::unordered_map<RE::TESObjectARMO*, std::string>         GetArmorTypes(RE::TESObjectREFR* actor);
 	std::unordered_map<std::string, RE::TESObjectARMO*>         GetArmorTypesInverse(RE::TESObjectREFR* actor);
 	std::vector<RE::TESObjectARMO*>                             GetLootedArmors(RE::TESObjectREFR* actor);
-	bool                                                        IsDummySuits(RE::TESObjectARMO* item);
+	bool                                                        IsDummySuits(RE::TESObjectARMO* item, bool isToggle = false);
+	bool                                                        IsSuit(RE::TESObjectREFR* member);
 	bool                                                        IsPickpocketItems(RE::TESBoundObject* item);
-	bool                                                        HasDummySuits(RE::TESObjectREFR* member);
+	bool                                                        HasDummySuits(RE::TESObjectREFR* member, bool isToggle = false);
 	bool                                                        HasPickpocketItems(RE::TESObjectREFR* member);
 	std::unordered_map<std::string, RE::TESObjectWEAP*>         GetPickpocketFlagItems(RE::TESObjectREFR* member);
 	void                                                        AddPickpocketItems(RE::TESObjectREFR* member);
@@ -78,6 +82,9 @@ namespace StrippingArmor
 	void                                                        RemoveKeyword(RE::TESObjectREFR* member, std::string keyword);
 	void                                                        SubKeyword(RE::TESObjectREFR* member, std::string keyword, std::string scriptname);
 	bool                                                        AllowTypeByTheftLevel(std::string type, int level);
+	std::unordered_map<std::string, bool>                       GetKeywordMapFromArmor(RE::TESObjectREFR* member);
+	std::unordered_map<std::string, bool>                       GetKeywordMapFromActor(RE::TESObjectREFR* member);
+	RE::TESObjectARMO*                                          GetArmorFromKeywordMap(std::unordered_map<std::string, bool> keywords, bool isSuit);
 
 	inline int                                                  StrippingArmorIndex = 0;
 	inline int                                                  FormIDForModIndex = 0x827;

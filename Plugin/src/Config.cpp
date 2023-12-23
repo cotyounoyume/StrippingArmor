@@ -12,14 +12,44 @@ namespace Config
 		}
 
 		Info(fmt::format("StrippingArmor: path={}", path.string()));
-		TomlConfig = toml::parse_file(path.string());
+		try {
+			TomlConfig = toml::parse_file(path.string());
+			tomlParseError = false;
+		} catch (const toml::parse_error& err) {
+			tomlParseError = true;
+			auto tomlerror = std::string(err.description());
+			std::string message =
+				"There is an error in editing StrippingArmor.ini. _ \
+Loading of StrippingArmor.ini has been stopped and the contents of this file will not be reflected. _ \
+Please correct StrippingArmor.ini according to the error message. _ \
+If you are unsure, please re-download the file for this mod or otherwise restore it to its original state.";
+			
+			Info(fmt::format("StrippingArmor: Exception: {}\n{}", tomlerror, message));
+			if (Utility::InGameScene(true)) {
+				Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.PrintMessage\" \"{}\"", message));
+			}
+			//std::wstring wMessage(message.begin(), message.end());
+			//MessageBox(NULL, wMessage.c_str(), NULL, MB_OK); 
+		} catch (...) {
+			tomlParseError = true;
+			std::string message =
+				"There is an error in editing StrippingArmor.ini._ \
+Loading of StrippingArmor.ini has been stopped and the contents of this file will not be reflected. _ \
+If you are unsure, please re-download the file for this mod or otherwise restore it to its original state.";
+			Info(fmt::format("StrippingArmor: Exception: Unknown Error.\n{}", message));
+			if (Utility::InGameScene(true)) {
+				Utility::ExecuteCommandString(fmt::format("cgf \"zzStrippingArmor.PrintMessage\" \"{}\"", message));
+				//Utility::ExecuteCommandString(fmt::format("print \"{}\"", message));
+			}
+			//std::wstring wMessage(message.begin(), message.end());
+			//MessageBox(NULL, wMessage.c_str(), NULL, MB_OK);
+		}
 	}
 
 	void ReadIni()
 	{
 		SetTomlPath();
 
-		DumpSettings();
 		for (auto category : Categories) {
 			auto boolMap = GetBoolMapByCategory(category);
 			for (auto itr = (*boolMap).begin(); itr != (*boolMap).end(); ++itr) {
@@ -36,8 +66,7 @@ namespace Config
 				ReadConfigInt(category, itr->first);
 			}
 		}
-
-		DumpSettings();
+		//DumpSettings();
 
 		if (GetTraditionalLootingOn())
 			SetTraditionalLootingOnly();
@@ -97,6 +126,8 @@ namespace Config
 
 	bool GetCanStealDroppedItemOn() { return SettingsBoolMapGeneralMajor["CanStealDroppedItem"]; }
 
+	bool GetToggleNormalOrOthersOn() { return SettingsBoolMapGeneralMajor["ToggleNormalOrOthers"]; }
+
 	//GeneralMinor
 	bool GetAlternativeClothEnabled() { return SettingsBoolMapGeneralMinor["AlternativeClothOn"]; }
 
@@ -126,10 +157,16 @@ namespace Config
 	bool GetDebugExecuteToCrossRefActorForcedOn() { return SettingsBoolMapDebug["DebugExecuteToCrossRefActorForced"]; }
 
 	std::string GetStrippingKey() { return SettingsStringMapGeneralMajor["StrippingKey"]; }
+	std::string GetToggleKey() { return SettingsStringMapGeneralMajor["ToggleKey"]; }
 
 	char GetStrippingKeyNumber()
-	{ 
+	{
 		return SettingsStringMapGeneralMajor["StrippingKey"].c_str()[0];
+	}
+
+	char GetToggleKeyNumber()
+	{
+		return SettingsStringMapGeneralMajor["ToggleKey"].c_str()[0];
 	}
 
 	std::string GetEffectFormID() { return SettingsStringMapGeneralMinor["EffectShaderFormIDForStripping"]; }
@@ -221,6 +258,8 @@ namespace Config
 	void ReadConfigBool(std::string category, std::string name)
 	{
 		auto        map = GetBoolMapByCategory(category);
+		if (tomlParseError)
+			return;
 		std::string value = TomlConfig[category][name].value_or("");
 
 		if (value != "") {
@@ -232,6 +271,8 @@ namespace Config
 	void ReadConfigString(std::string category, std::string name)
 	{
 		auto        map = GetStringMapByCategory(category);
+		if (tomlParseError)
+			return;
 		std::string value = TomlConfig[category][name].value_or("");
 
 		if (value != "") {
@@ -243,6 +284,8 @@ namespace Config
 	void ReadConfigInt(std::string category, std::string name)
 	{
 		auto        map = GetIntMapByCategory(category);
+		if (tomlParseError)
+			return;
 		std::string value = TomlConfig[category][name].value_or("");
 		if (value != "") {
 			try {
