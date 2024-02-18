@@ -1,9 +1,11 @@
 #pragma once
 #include "Common.h"
-#include "winuser.h"
+//#include "winuser.h"
 
 namespace Config
 {
+	inline bool                       EsmCheck = true;
+	inline std::string                UniqueEditorID = "SAHasDummySuit";
 	inline toml::v3::ex::parse_result            TomlConfig;
 	inline std::vector<std::string>   Categories = {
         "GeneralMajor",
@@ -62,6 +64,7 @@ namespace Config
 	inline std::unordered_map<std::string, int> SettingsIntMapGeneralMinor = {
 		{ "TimePerFrame", 50 },
 		{ "TakingBackEquipmentTimer", 10 },
+		{ "CellSearchRadius", 3},
 	};
 
 	inline std::unordered_map<std::string, int> SettingsIntMapCorpseVisualEffect = {
@@ -78,6 +81,7 @@ namespace Config
 
 	inline std::unordered_map<std::string, int> SettingsIntMapDebug = {
 		{ "LogLevel", 0 },
+		{ "CellSearchRadiusDebug", 20},
 	};
 
 
@@ -99,6 +103,8 @@ namespace Config
 	int         GetCorpseTimer();
 	bool        GetUseStrippingKeyToCorpse();
 	int         GetTimePerFrame();
+	int         GetCellSearchRadius();
+	int         GetCellSearchRadiusDebug();
 	int         GetRePickTimer();
 	bool        GetEnableDroppingItemsOn();
 	bool        GetCanStealDroppedItemOn();
@@ -119,6 +125,8 @@ namespace Config
 	bool        GetDebugExecuteToCrossRefActorForcedOn();
 	bool        GetTraditionalLootingOn();
 	bool        GetToggleNormalOrOthersOn();
+	void        EsmNotLoadCheck();
+
 
 	std::unordered_map<std::string, bool>*        GetBoolMapByCategory(std::string category);
 	std::unordered_map<std::string, std::string>* GetStringMapByCategory(std::string category);

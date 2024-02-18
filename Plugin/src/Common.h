@@ -1,5 +1,6 @@
 #include "PCH.h"
 #include "Utility.h"
+#include "StrippingArmorCommon.h"
 
 namespace U = Utility;
 using Utility::Info;

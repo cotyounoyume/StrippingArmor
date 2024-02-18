@@ -53,8 +53,7 @@ add_library(
 		${CMAKE_CURRENT_BINARY_DIR}/include/Plugin.h
 		${CMAKE_CURRENT_BINARY_DIR}/version.rc
 		.clang-format
-		vcpkg.json
- "src/Utility.h" "src/Utility.cpp" "src/Config.cpp" "src/Config.h" "src/Event.cpp")
+		vcpkg.json)
 
 # include dir
 target_include_directories(
