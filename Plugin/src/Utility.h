@@ -46,6 +46,20 @@ namespace Utility
 	bool                HasKeyword(RE::TESObjectWEAP* weapon, std::string keyword);
 	bool                HasKeyword(RE::TESObjectMISC* item, std::string keyword);
 	bool                HasKeyword(RE::TESObjectREFR* member, std::string keyword);
+	bool                HasKeyword(RE::TESObjectREFR* member, RE::BGSKeyword* keyword);
+
+	RE::TESObjectREFR*  GetPlayer();
+	RE::Actor*          GetPlayerActor();
+	RE::Actor*          Object2Actor(RE::TESObjectREFR* member);
+	bool                IsHumanRace(RE::TESObjectREFR* member);
+	bool                IsValidNPC(RE::TESObjectREFR* member);
+	bool                IsInSameCell(RE::TESObjectREFR* member1, RE::TESObjectREFR* member2);
+
+	bool IsCommandedActor(RE::TESObjectREFR* member);
+	bool IsBleeding(RE::TESObjectREFR* member);
+	bool IsTalking(RE::TESObjectREFR* member);
+
+
 
 	std::unordered_map<RE::TESBoundObject*, int>                CollectInventoryItems(RE::TESObjectREFR* actor, std::string itemType);
 	std::unordered_map<RE::TESObjectARMO*, int>                 CollectInventoryArmors(RE::TESObjectREFR* actor);
@@ -58,6 +72,9 @@ namespace Utility
 	RE::TESObjectARMO*                                          BoundObjectToArmor(RE::TESBoundObject* item);
 	RE::TESObjectMISC*                                          BoundObjectToMisc(RE::TESBoundObject* item);
 	RE::TESObjectWEAP*                                          BoundObjectToWeapon(RE::TESBoundObject* item);
+	std::unordered_map<RE::TESObjectREFR*, bool>                CollectRefsInCell(RE::TESObjectCELL* cell);
+	std::unordered_map<RE::TESObjectREFR*, bool>                CollectRefsInCellInRange(RE::TESObjectCELL* cell, RE::TESObjectREFR* player, float radius = 200.0);
+
 
 	void AddItem(RE::TESObjectREFR* member, int itemFormID, int num);
 	void AddItem(int actorFormID, int itemFormID, int num);
@@ -72,6 +89,8 @@ namespace Utility
 	int  GetPerkLevel(RE::TESObjectREFR* member, int formID);
 
 	std::string                                                 GetArmorType(RE::TESObjectARMO* armor);
+	inline std::unordered_map<RE::TESObjectREFR*, bool> RefsForScanner;
+
 	inline std::unordered_map<RE::TESBoundObject*, int>         ItemForScanner;
 	inline std::unordered_map<RE::TESBoundObject*, std::string> ItemTypesForScanner;
 	inline std::vector<RE::TESObjectARMO*>                      ArmorVector;

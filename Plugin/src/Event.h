@@ -35,8 +35,9 @@ struct TESContainerChangedEvent
 namespace Events
 {
 	inline bool               mainMenuClosed = false;
-	inline bool NeedReset = false;
-	inline RE::TESObjectREFR* DialogueTarget;
+	inline bool               mainMenuOpened = false;
+	inline bool               NeedReset = false;
+	//inline RE::TESObjectREFR* DialogueTarget;
 	class EventHandlerForMenu : public ISingleton<EventHandlerForMenu>, public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 	{
 		RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent& a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override;

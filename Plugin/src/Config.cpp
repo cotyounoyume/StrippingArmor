@@ -74,22 +74,35 @@ If you are unsure, please re-download the file for this mod or otherwise restore
 		U::SetLogLevel(GetLogLevel());
 	}
 
+	void EsmNotLoadCheck()
+	{
+		if (!EsmCheck)
+			return;
+		auto        form = RE::TESForm::LookupByEditorID(UniqueEditorID);
+		std::string name = Plugin::NAME.data();
+		std::string msg1 = "ERROR::There is an error about the " + name + "._ ";
+		std::string msg2 = name + ".esm cannot be found._ Perhaps you have failed to install the Plugin.txt Enabler or have made a mistake in its configuration._ Please review the Plugin.txt Enabler and its settings.";
+		std::string msg = msg1 + msg2;
+		if (!form)
+			Utility::ExecuteCommandString(fmt::format("cgf \"debug.messagebox\" \"{}\"", msg));
+	}
+
 	void DumpSettings()
 	{
 		for (auto category : Categories) {
 			auto boolMap = GetBoolMapByCategory(category);
 			for (auto itr = (*boolMap).begin(); itr != (*boolMap).end(); ++itr) {
-				Info(fmt::format("Bool: category:{}, name:{}, value:{}", category, itr->first, itr->second));
+				Debug(fmt::format("Bool: category:{}, name:{}, value:{}", category, itr->first, itr->second));
 			}
 
 			auto stringMap = GetStringMapByCategory(category);
 			for (auto itr = (*stringMap).begin(); itr != (*stringMap).end(); ++itr) {
-				Info(fmt::format("String: category:{}, name:{}, value:{}", category, itr->first, itr->second));
+				Debug(fmt::format("String: category:{}, name:{}, value:{}", category, itr->first, itr->second));
 			}
 
 			auto intMap = GetIntMapByCategory(category);
 			for (auto itr = (*intMap).begin(); itr != (*intMap).end(); ++itr) {
-				Info(fmt::format("Int: category:{}, name:{}, value:{}", category, itr->first, itr->second));
+				Debug(fmt::format("Int: category:{}, name:{}, value:{}", category, itr->first, itr->second));
 			}
 		}
 	}
@@ -172,6 +185,10 @@ If you are unsure, please re-download the file for this mod or otherwise restore
 	std::string GetEffectFormID() { return SettingsStringMapGeneralMinor["EffectShaderFormIDForStripping"]; }
 	
 	int GetTimePerFrame() { return SettingsIntMapGeneralMinor["TimePerFrame"]; }
+
+	int GetCellSearchRadius() { return SettingsIntMapGeneralMinor["CellSearchRadius"]; }
+
+	int GetCellSearchRadiusDebug() { return SettingsIntMapDebug["CellSearchRadiusDebug"]; }
 
 	int GetRePickTimer() { return SettingsIntMapGeneralMinor["TakingBackEquipmentTimer"]; }
 

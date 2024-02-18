@@ -71,16 +71,18 @@ namespace Utility
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (player == nullptr)
 			return false;
+
+		if (RE::UI::GetSingleton()->IsMenuOpen("MainMenu"))
+			return false;
 		if (withOutMenu)
 			return true;
 
-		if(RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"))
+		if (RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu"))
 			return true;
 		if (RE::UI::GetSingleton()->IsMenuOpen("Console"))
 			return false;
 		if (IsMenuOthersOpen())
 			return false;
-
 		return true;
 	}
 
@@ -97,45 +99,28 @@ namespace Utility
 
 	bool IsMenuInGameOpen()
 	{
-		if (RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("WorkshopMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("CursorMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("MonocleMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu")
-			)
+		if (RE::UI::GetSingleton()->IsMenuOpen("DialogueMenu") || RE::UI::GetSingleton()->IsMenuOpen("WorkshopMenu") || RE::UI::GetSingleton()->IsMenuOpen("CursorMenu") || RE::UI::GetSingleton()->IsMenuOpen("MonocleMenu") || RE::UI::GetSingleton()->IsMenuOpen("PickpocketMenu"))
 			return true;
 		return false;
 	}
 
 	bool IsMenuForSystemOpen()
 	{
-		if (RE::UI::GetSingleton()->IsMenuOpen("PauseMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("Console") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("FaderMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("LoadingMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("MainMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("GalaxyStarMapMenu")
-			)
+		if (RE::UI::GetSingleton()->IsMenuOpen("PauseMenu") || RE::UI::GetSingleton()->IsMenuOpen("Console") || RE::UI::GetSingleton()->IsMenuOpen("FaderMenu") || RE::UI::GetSingleton()->IsMenuOpen("LoadingMenu") || RE::UI::GetSingleton()->IsMenuOpen("MainMenu") || RE::UI::GetSingleton()->IsMenuOpen("GalaxyStarMapMenu"))
 			return true;
 		return false;
 	}
 
 	bool IsMenuForTradeOpen()
 	{
-		if (RE::UI::GetSingleton()->IsMenuOpen("ContainerMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("BarterMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("SpaceshipEditorMenu") 
-			)
+		if (RE::UI::GetSingleton()->IsMenuOpen("ContainerMenu") || RE::UI::GetSingleton()->IsMenuOpen("BarterMenu") || RE::UI::GetSingleton()->IsMenuOpen("SpaceshipEditorMenu"))
 			return true;
 		return false;
 	}
 
 	bool IsMenuForTerminalOpen()
 	{
-		if (RE::UI::GetSingleton()->IsMenuOpen("MissionBoard") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("DataMenu") 
-			|| RE::UI::GetSingleton()->IsMenuOpen("GenesisTerminalMenu") 
-		)
+		if (RE::UI::GetSingleton()->IsMenuOpen("MissionBoard") || RE::UI::GetSingleton()->IsMenuOpen("DataMenu") || RE::UI::GetSingleton()->IsMenuOpen("GenesisTerminalMenu"))
 			return true;
 		return false;
 	}
@@ -172,7 +157,7 @@ namespace Utility
 
 	RE::BGSKeyword* GetKeywordFromID(int formID, int modIndex)
 	{
-		int  fullFormID = modIndex * (1 << 24) + formID;
+		int fullFormID = modIndex * (1 << 24) + formID;
 
 		auto form = RE::TESForm::LookupByID<RE::BGSKeyword>(fullFormID);
 		if (!form) {
@@ -232,7 +217,18 @@ namespace Utility
 
 	bool HasKeyword(RE::TESObjectREFR* member, std::string keyword)
 	{
-		return member->HasKeyword(GetKeywordFromString(keyword));
+		return HasKeyword(member, GetKeywordFromString(keyword));
+	}
+
+	bool HasKeyword(RE::TESObjectREFR* member, RE::BGSKeyword* keyword)
+	{
+		return member->HasKeyword(keyword);
+	}
+
+	bool HasKeyword(RE::TESBoundObject* item, RE::BGSKeyword* keyword)
+	{
+		auto armor = BoundObjectToArmor(item);
+		return HasKeyword(armor, keyword);
 	}
 
 	RE::BGSKeyword* GetKeywordFromString(std::string editorID)
@@ -245,7 +241,6 @@ namespace Utility
 		return form;
 	}
 
-	
 	RE::TESObjectMISC* GetMiscFromID(int formID, int modIndex)
 	{
 		int  fullFormID = modIndex * (1 << 24) + formID;
@@ -316,6 +311,94 @@ namespace Utility
 		return armor;
 	}
 
+	RE::TESObjectREFR* GetPlayer()
+	{
+		auto playerForm = RE::TESForm::LookupByID(0x14);
+		if (playerForm == nullptr) {
+			Error(fmt::format("Can't get player form."));
+			return nullptr;
+		}
+
+		auto player = static_cast<RE::TESObjectREFR*>(playerForm);
+		if (player == nullptr) {
+			Error(fmt::format("Can't get player ref."));
+			return nullptr;
+		}
+		return player;
+	}
+
+	RE::Actor* GetPlayerActor()
+	{
+		auto playerForm = RE::TESForm::LookupByID(0x14);
+		if (playerForm == nullptr) {
+			Error(fmt::format("Can't get player form."));
+			return nullptr;
+		}
+
+		auto player = static_cast<RE::Actor*>(playerForm);
+		if (player == nullptr) {
+			Error(fmt::format("Can't get player actor ref."));
+			return nullptr;
+		}
+		return player;
+	}
+
+	RE::Actor* Object2Actor(RE::TESObjectREFR* member)
+	{
+		if (!member)
+			return nullptr;
+		auto form = RE::TESForm::LookupByID(member->formID);
+		if (!form) {
+			Error(format("can't find id:{}", Utility::num2hex(member->formID)));
+			return nullptr;
+		}
+		auto form2 = static_cast<RE::Actor*>(form);
+		if (!form2) {
+			Error(format("can't cast id:{}, {}", Utility::num2hex(member->formID), form2->GetFormEditorID()));
+			return nullptr;
+		}
+		return form2;
+	}
+
+	bool IsCommandedActor(RE::TESObjectREFR* member)
+	{
+		auto actor = Object2Actor(member);
+		if (!actor)
+			return false;
+		return actor->boolFlags.any(RE::Actor::BOOL_FLAGS::kIsCommandedActor);
+	}
+
+	bool IsBleeding(RE::TESObjectREFR* member)
+	{
+		auto actor = Object2Actor(member);
+		if (!actor)
+			return false;
+		return actor->boolFlags.any(RE::Actor::BOOL_FLAGS::kInBleedoutAnimation);
+	}
+
+	bool IsTalking(RE::TESObjectREFR* member)
+	{
+		if (!member)
+			return false;
+		auto actor = Object2Actor(member);
+		if (actor) {
+			auto pointer = actor->dialogueItemTarget;
+			auto pkg = actor->currentProcess->currentPackage.package;
+			if (pointer != 0) {
+				Debug(fmt::format("test: {}({}): pointer={}", member->GetFormEditorID(), Utility::num2hex(member->formID), pointer));
+			} else {
+				Debug(fmt::format("test: {}({}): pointer is zero", member->GetFormEditorID(), Utility::num2hex(member->formID)));
+			}
+			if (pkg) {
+				Debug(fmt::format("test: {}({}): pkg={}({})", member->GetFormEditorID(), Utility::num2hex(member->formID), pkg->GetFormEditorID(), pkg->formID));
+			} else {
+				Debug(fmt::format("test: {}({}): pkg is nullptr", member->GetFormEditorID(), Utility::num2hex(member->formID)));
+			}
+		}
+
+		return member->IsTalking();
+	}
+
 	RE::TESObjectARMO* GetArmorFromString(std::string editorID)
 	{
 		auto form = RE::TESForm::LookupByEditorID<RE::TESObjectARMO>(editorID.c_str());
@@ -365,7 +448,7 @@ namespace Utility
 	{
 		int intValue;
 		try {
-			intValue = std::stoi(formID, 0, 16);  // ƒx[ƒX16i16i”j‚Å•ÏŠ·
+			intValue = std::stoi(formID, 0, 16);  // ï¿½xï¿½[ï¿½X16ï¿½i16ï¿½iï¿½ï¿½ï¿½jï¿½Å•ÏŠï¿½
 			return intValue;
 		} catch (const std::invalid_argument& ia) {
 			return 0;
@@ -498,6 +581,77 @@ namespace Utility
 		};
 		actor->ForEachInventoryItem(scanner);
 		return MiscForScanner;
+	}
+
+	std::unordered_map<RE::TESObjectREFR*, bool> CollectRefsInCell(RE::TESObjectCELL* cell)
+	{
+		RefsForScanner.clear();
+		if (cell == nullptr)
+			return RefsForScanner;
+
+		auto scanner = [](const RE::NiPointer<RE::TESObjectREFR>& ref) -> RE::BSContainer::ForEachResult {
+			auto obj = ref.get();
+			//Info(fmt::format("CollectInventoryMiscItems: item id:{}", num2hex(item.object->formID)));
+			if (IsValidNPC(obj))
+				RefsForScanner[obj] = true;
+			return RE::BSContainer::ForEachResult::kContinue;
+		};
+		cell->ForEachReference(scanner);
+		return RefsForScanner;
+	}
+
+	std::unordered_map<RE::TESObjectREFR*, bool> CollectRefsInCellInRange(RE::TESObjectCELL* cell, RE::TESObjectREFR* player, float radius)
+	{
+		RefsForScanner.clear();
+		if (cell == nullptr || player == nullptr)
+			return RefsForScanner;
+		auto origin = player->GetPosition();
+
+		auto scanner = [](const RE::NiPointer<RE::TESObjectREFR>& ref) -> RE::BSContainer::ForEachResult {
+			auto obj = ref.get();
+			//Info(fmt::format("CollectInventoryMiscItems: item id:{}", num2hex(item.object->formID)));
+			if(IsValidNPC(obj))
+				RefsForScanner[obj] = true;
+			return RE::BSContainer::ForEachResult::kContinue;
+		};
+		cell->ForEachReferenceInRange(origin, radius, scanner);
+		return RefsForScanner;
+	}
+
+	bool IsValidNPC(RE::TESObjectREFR* member)
+	{
+		if (!member || !member->IsActor())
+			return false;
+		if (member->formID == 0x14) {
+			//Info(fmt::format("DebugToSameCell: formID 0x14 is player. Skip"));
+			return false;
+		}
+		if (!Utility::IsHumanRace(member)) {
+			//Info(fmt::format("DebugToSameCell: formID:{} is NOT HumanRace. Skip", Utility::num2hex(obj->formID)));
+			return false;
+		}
+		return true;
+	}
+
+	bool IsHumanRace(RE::TESObjectREFR* member)
+	{
+		if (!member)
+			return false;
+		//auto racename = member->GetVisualsRace()->GetFormEditorID();
+		auto raceid = member->GetVisualsRace()->GetFormID();
+
+		return raceid == 0x347d;
+		//if (raceid != 0x347d) {
+		//	Info(fmt::format("DebugToSameCell: formID:{} is NOT HumanRace({}). Skip", Utility::num2hex(obj->formID), racename));
+		//	continue;
+		//}
+	}
+
+	bool IsInSameCell(RE::TESObjectREFR* member1, RE::TESObjectREFR* member2)
+	{
+		if (!member1 || !member2)
+			return false;
+		return member1->parentCell == member2->parentCell;
 	}
 
 	RE::TESObjectARMO* BoundObjectToArmor(RE::TESBoundObject* item)
