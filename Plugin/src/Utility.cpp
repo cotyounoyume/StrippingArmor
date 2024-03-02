@@ -11,6 +11,10 @@ namespace Utility
 	void ExecuteCommandStringOnFormID(int formID, std::string subCommand)
 	{
 		std::string command = fmt::format("{}.{}", num2hex(formID), subCommand);
+		if (formID == 0x0) {
+			ERROR(fmt::format("ERROR: invalid command:{}", command));
+			return;
+		}
 		ExecuteCommandString(command);
 	}
 
@@ -617,17 +621,34 @@ namespace Utility
 			auto obj = ref.get();
 			//if(obj)
 			//	Info(fmt::format("CollectInventoryMiscItems: obj id:{}", num2hex(obj->formID)));
-			if(IsValidNPC(obj))
-				RefsForScanner[obj] = true;
+			if (!IsWrongForm(obj, "CollectRefsInCellInRange")) {
+				if (IsValidNPC(obj))
+					RefsForScanner[obj] = true;
+			}
 			return RE::BSContainer::ForEachResult::kContinue;
 		};
 		cell->ForEachReferenceInRange(origin, radius, scanner);
 		return RefsForScanner;
 	}
 
+	bool IsWrongForm(RE::TESObjectREFR* member, std::string debugMsg)
+	{
+		if (!member) {
+			Error(fmt::format("  ERROR!! {}: member is null", debugMsg));
+			return true;
+		}
+		if (member->formID == 0x0) {
+			Error(fmt::format("  ERROR!! {}: member is 0x0", debugMsg));
+			return true;
+		}
+		return false;
+	}
+
 	bool IsValidNPC(RE::TESObjectREFR* member)
 	{
-		if (!member || !member->IsActor())
+		if (IsWrongForm(member, "IsValidNPC"))
+			return false;
+		if (!member->IsActor())
 			return false;
 		if (member->formID == 0x14) {
 			//Info(fmt::format("DebugToSameCell: formID 0x14 is player. Skip"));
