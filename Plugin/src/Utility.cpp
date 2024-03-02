@@ -72,6 +72,12 @@ namespace Utility
 		if (player == nullptr)
 			return false;
 
+		if (!RE::UI::GetSingleton()->IsMenuOpen("HUDMenu"))
+			return false;
+
+		if (RE::UI::GetSingleton()->IsMenuOpen("EndGameCreditsMenu"))
+			return false;
+
 		if (RE::UI::GetSingleton()->IsMenuOpen("MainMenu"))
 			return false;
 		if (withOutMenu)
@@ -609,7 +615,8 @@ namespace Utility
 
 		auto scanner = [](const RE::NiPointer<RE::TESObjectREFR>& ref) -> RE::BSContainer::ForEachResult {
 			auto obj = ref.get();
-			//Info(fmt::format("CollectInventoryMiscItems: item id:{}", num2hex(item.object->formID)));
+			//if(obj)
+			//	Info(fmt::format("CollectInventoryMiscItems: obj id:{}", num2hex(obj->formID)));
 			if(IsValidNPC(obj))
 				RefsForScanner[obj] = true;
 			return RE::BSContainer::ForEachResult::kContinue;

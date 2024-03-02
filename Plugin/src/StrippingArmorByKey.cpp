@@ -9,12 +9,12 @@ namespace StrippingArmorByKey
 			CallAndCheckDialogTarget();
 			return;
 		}
-		if (!StateMachine::IsListedInForKeytap(DialogTarget)) {
+		if (!StateMachine::IsListedInForKeytap(DialogTarget, true)) {
 			AddKeywordForCandidates(DialogTarget, true);
-			AddKeywordMonitoring();
+			AddKeywordMonitoring(true);
 		} else {
 			if (StrippingArmorCommon::IsKeyPressed())
-				ProcessByKey("from State_Dialogue");
+				ProcessByKey(true);
 		}
 	}
 
@@ -51,7 +51,7 @@ namespace StrippingArmorByKey
 			SearchTargetsByKey(bForced);
 		}
 		AddKeywordMonitoring();
-		ProcessByKey("from State_StrippingByKey");
+		ProcessByKey(false);
 	}
 
 	void SearchTargetsByKey(bool bForced)
@@ -82,7 +82,7 @@ namespace StrippingArmorByKey
 		AddKeywordWaitingList[member] = true;
 	}
 
-	void AddKeywordMonitoring()
+	void AddKeywordMonitoring(bool inDialog)
 	{
 		std::vector<RE::TESObjectREFR*> list;
 		for (auto itr = AddKeywordWaitingList.begin(); itr != AddKeywordWaitingList.end(); ++itr) {
@@ -102,7 +102,7 @@ namespace StrippingArmorByKey
 					StrippingArmorCommon::ShouldShowSpacesuitMap[member] = StrippingArmorCommon::ShouldShowSpaceSuit(member);
 
 				StrippingArmorCommon::MemorizeArmorType(member);
-				StateMachine::AddToListForKeytap(member);
+				StateMachine::AddToListForKeytap(member, inDialog);
 
 				StrippingArmorCommon::RemoveCandidateKeywords(member);
 				list.push_back(member);
@@ -114,16 +114,21 @@ namespace StrippingArmorByKey
 		}
 	}
 
-	void ProcessByKey(std::string debug)
+	void ProcessByKey(bool inDialog)
 	{
 		std::vector<RE::TESObjectREFR*> list;
-		for (auto member : StateMachine::GetForKeytapList()) {
+		//Debug("in ProcessByKey:");
+		//StateMachine::ForDebugGetMember(true);
+		//StateMachine::ForDebugGetMember(false);
+
+		for (auto member : StateMachine::GetForKeytapList(inDialog)) {
 			if (member->IsDead(true)) {
 				StealEquipArmors(member);
 				StrippingArmorCommon::EquipDummysuit(member);
 				StateMachine::SetStage(member, StateMachine::STAGE::kLooted);
 			} else {
-				Debug(fmt::format("Debug: {}", debug));
+				//std::string msg = inDialog ? "in Dialog" : "in KeyPressed";
+				//Debug(fmt::format("Debug: {}", msg));
 				DropEquipItems(member);
 				StrippingArmorCommon::EquipDummysuit(member);
 			}

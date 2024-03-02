@@ -11,9 +11,10 @@ namespace StrippingArmorLoot
 	void SearchBodies()
 	{
 		auto pairs = StrippingArmorCommon::CollectRefsInCell();
-
 		for (auto itr = pairs.begin(); itr != pairs.end(); ++itr) {
 			auto member = itr->first;
+			//if (member)
+			//	Debug(fmt::format("member:{}({})", member->GetFormEditorID(), Utility::num2hex(member->formID)));
 			if (!Utility::IsValidNPC(member))
 				continue;
 
