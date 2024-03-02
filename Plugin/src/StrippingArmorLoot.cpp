@@ -13,31 +13,40 @@ namespace StrippingArmorLoot
 		auto pairs = StrippingArmorCommon::CollectRefsInCell();
 		for (auto itr = pairs.begin(); itr != pairs.end(); ++itr) {
 			auto member = itr->first;
-			//if (member)
-			//	Debug(fmt::format("member:{}({})", member->GetFormEditorID(), Utility::num2hex(member->formID)));
+			if (Utility::IsWrongForm(member, "SearchBodies"))
+				continue;
+			Debug(fmt::format("member: formID:{}", Utility::num2hex(member->formID)));
+			Debug(fmt::format("member:{}({})", member->GetFormEditorID(), Utility::num2hex(member->formID)));
+
 			if (!Utility::IsValidNPC(member))
 				continue;
 
 			if (StateMachine::IsListed(member))
 				continue;
+
 			if (member->IsDead(true)) {
 				SelectStatusForLoot(member);
 				//State_MonitoringCorpse(member);
 			}
 		}
 
+		Debug(fmt::format("SearchBodies: before: readyForHouseKeep"));
 		bool needHouseKeep = false;
 		for (auto member : StateMachine::GetTargetBodiesAll()) {
 			if (!pairs.contains(member)) {
 				if (!Utility::IsInSameCell(StrippingArmorCommon::Player, member)) {
 					Debug(fmt::format("SearchBodies: member:{}({}) is NOT in same cell", member->GetFormEditorID(), Utility::num2hex(member->formID)));
-					StateMachine::SetStage(member, StateMachine::STAGE::kRemove);
+					StateMachine::SetStage(member, StateMachine::STAGE::kRemove, "SearchBodies");
 					needHouseKeep = true;
 				}
 			}
 		}
-		if (needHouseKeep)
+		Debug(fmt::format("SearchBodies: after: readyForHouseKeep"));
+		if (needHouseKeep) {
+			Debug(fmt::format("RemoveUnnecessaryMember: start:"));
 			StateMachine::RemoveUnnecessaryMember();
+			Debug(fmt::format("RemoveUnnecessaryMember: finish:"));
+		}
 	}
 
 	void SelectStatusForLoot(RE::TESObjectREFR* member)
@@ -60,7 +69,7 @@ namespace StrippingArmorLoot
 		int num = static_cast<int>(stage);
 		Debug(fmt::format("member: {}({}): stage:{}", member->GetFormEditorID(), Utility::num2hex(member->formID), num));
 
-		StateMachine::SetStage(member, stage);
+		StateMachine::SetStage(member, stage, "SelectStatusForLoot");
 	}
 
 	void MonitoringBodiesForLoot()
@@ -71,7 +80,7 @@ namespace StrippingArmorLoot
 			//Debug(format("MonitoringBodiesForLoot: member {}({}): stage:{}", member->GetFormEditorID(), member->formID, static_cast<int>(StateMachine::GetStage(member))));
 			if (!member || !Utility::IsInSameCell(StrippingArmorCommon::Player, member)) {
 				Debug(fmt::format("MonitoringBodiesForLoot: member:{}({}) is NOT in same cell", member->GetFormEditorID(), Utility::num2hex(member->formID)));
-				StateMachine::SetStage(member, StateMachine::STAGE::kRemove);
+				StateMachine::SetStage(member, StateMachine::STAGE::kRemove, "MonitoringBodiesForLoot");
 				needHouseKeep = true;
 			} else if (StateMachine::GetStage(member) == StateMachine::STAGE::kError) {
 				continue;
@@ -109,7 +118,7 @@ namespace StrippingArmorLoot
 			StrippingArmorCommon::MemorizeArmorType(member);
 		}
 		AddKeywordForLoot(member);
-		StateMachine::SetStage(member, StateMachine::STAGE::kLootCandidate);
+		StateMachine::SetStage(member, StateMachine::STAGE::kLootCandidate, "ProcessForStageDead");
 	}
 
 	void ProcessForStageLootCandidate(RE::TESObjectREFR* member)
@@ -121,13 +130,13 @@ namespace StrippingArmorLoot
 			if (!StrippingArmorCommon::ShouldShowSpacesuitMap.contains(member))
 				StrippingArmorCommon::ShouldShowSpacesuitMap[member] = StrippingArmorCommon::ShouldShowSpaceSuit(member);
 			StrippingArmorCommon::RemoveCandidateKeywords(member);
-			StateMachine::SetStage(member, StateMachine::STAGE::kLootWaiting);
+			StateMachine::SetStage(member, StateMachine::STAGE::kLootWaiting, "ProcessForStageLootCandidate1");
 			return;
 		}
 		if (StrippingArmorCommon::MCHasKeyword(member, "SAConditionNG")) {
 			Utility::Error(fmt::format("ProcessForStageLootCandidate: Unknown Error. {}({}) has SAConditionNG in Loot Route", member->GetFormEditorID(), Utility::num2hex(member->formID)));
 			StrippingArmorCommon::RemoveCandidateKeywords(member);
-			StateMachine::SetStage(member, StateMachine::STAGE::kError);
+			StateMachine::SetStage(member, StateMachine::STAGE::kError, "ProcessForStageLootCandidate2");
 			return;
 		}
 	}
@@ -136,7 +145,7 @@ namespace StrippingArmorLoot
 	{
 		if (RemoveArmorIfLooted(member)) {
 			StrippingArmorCommon::EquipDummysuit(member);
-			StateMachine::SetStage(member, StateMachine::STAGE::kLooted);
+			StateMachine::SetStage(member, StateMachine::STAGE::kLooted, "ProcessForStageLootWaiting");
 		}
 	}
 
@@ -144,7 +153,7 @@ namespace StrippingArmorLoot
 	{
 		RemoveArmorIfLooted(member);
 		AddKeywordForCorpses(member);
-		StateMachine::SetStage(member, StateMachine::STAGE::kCorpseCandidate);
+		StateMachine::SetStage(member, StateMachine::STAGE::kCorpseCandidate, "ProcessForStageLooted");
 	}
 
 	void ProcessForStageCorpseCandidate(RE::TESObjectREFR* member)
@@ -161,20 +170,20 @@ namespace StrippingArmorLoot
 
 		if (!Config::GetChangingAppearanceOfCorpseEnabled() || HighOrLow == 0) {
 			RemoveCorpseKeywords(member);
-			StateMachine::SetStage(member, StateMachine::STAGE::kCorpsed);
+			StateMachine::SetStage(member, StateMachine::STAGE::kCorpsed, "ProcessForStageCorpseCandidate1");
 			return;
 		}
 
 		ChangingCorpse(member, HighOrLow);
 		RemoveCorpseKeywords(member);
-		StateMachine::SetStage(member, StateMachine::STAGE::kCorpsed);
+		StateMachine::SetStage(member, StateMachine::STAGE::kCorpsed, "ProcessForStageCorpseCandidate2");
 	}
 
 	void ProcessForStageCorpsed(RE::TESObjectREFR* member)
 	{
 		RemoveArmorIfLooted(member);
 		if (!StrippingArmorCommon::HasArmorsForLoot(member)) {
-			StateMachine::SetStage(member, StateMachine::STAGE::kCorpsedAndNaked);
+			StateMachine::SetStage(member, StateMachine::STAGE::kCorpsedAndNaked, "ProcessForStageCorpsed");
 			return;
 		}
 		StrippingArmorCommon::UnmemorizeArmorType(member);
@@ -189,19 +198,30 @@ namespace StrippingArmorLoot
 	{
 		if (actor == nullptr)
 			return;
-		Info(fmt::format("ReadyForLoot: Start:  {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
+		Info(fmt::format("ReadyForLoot: Start:  {}: {}({})", Utility::num2hex(actor->formID), actor->GetFormEditorID(), actor->GetDisplayFullName()));
+
 		auto armorMap = Utility::CollectInventoryArmors(actor);
+		Info(fmt::format("  ReadyForLoot: Ger armorMap: {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
 		for (auto itr = armorMap.begin(); itr != armorMap.end(); ++itr) {
 			int  count = itr->second;
 			auto item = itr->first;
-			if (StrippingArmorCommon::IsDummySuits(item))
+			Info(fmt::format("  ReadyForLoot: Item's formID: {}", Utility::num2hex(item->formID)));
+			Info(fmt::format("  ReadyForLoot: Item is {}()", item->GetFormEditorID(), Utility::num2hex(item->formID)));
+			bool isDummySuits = StrippingArmorCommon::IsDummySuits(item);
+			Info(fmt::format("  ReadyForLoot: isDummySuits: {}", isDummySuits));
+
+			if (StrippingArmorCommon::IsDummySuits(item)) 
 				continue;
 			bool isEquipped = actor->IsObjectEquipped(item);
+			Info(fmt::format("  ReadyForLoot: isEquipped: {}", isEquipped));
+
 			if (!(count == 1 && isEquipped)) {
 				Info(fmt::format("  skip: item:{}, count:{}, isEquipped:{}", item->GetFormEditorID(), count, isEquipped));
 				continue;
 			}
+			Info(fmt::format("  ReadyForLoot: before: AddItem"));
 			U::AddItem(actor->formID, item->formID, 1);
+			Info(fmt::format("  ReadyForLoot: after : AddItem"));
 		}
 		Info(fmt::format("ReadyForLoot: Finish: {}: {}", Utility::num2hex(actor->formID), actor->GetFormEditorID()));
 		return;

@@ -58,8 +58,7 @@ namespace Utility
 	bool IsCommandedActor(RE::TESObjectREFR* member);
 	bool IsBleeding(RE::TESObjectREFR* member);
 	bool IsTalking(RE::TESObjectREFR* member);
-
-
+	bool IsWrongForm(RE::TESObjectREFR* member, std::string debugMsg);
 
 	std::unordered_map<RE::TESBoundObject*, int>                CollectInventoryItems(RE::TESObjectREFR* actor, std::string itemType);
 	std::unordered_map<RE::TESObjectARMO*, int>                 CollectInventoryArmors(RE::TESObjectREFR* actor);

@@ -28,7 +28,8 @@ namespace StateMachine
 
 	void UnList(RE::TESObjectREFR* member)
 	{
-		LootStageMap.erase(member);
+		if(LootStageMap.contains(member))
+			LootStageMap.erase(member);
 	}
 
 	void ResetStage(RE::TESObjectREFR* member)
@@ -46,19 +47,24 @@ namespace StateMachine
 		return LootStageMap[member];
 	}
 
-	void SetStage(RE::TESObjectREFR* member, STAGE stage)
+	void SetStage(RE::TESObjectREFR* member, STAGE stage, std::string debugMsg)
 	{
-		Debug(fmt::format("SetStage: member:{}({}) from:{} to:{}", member->GetFormEditorID(), Utility::num2hex(member->formID), static_cast<int>(GetStage(member)), static_cast<int>(stage)));
+		if (Utility::IsWrongForm(member, "SetStage"))
+			return;
+		Debug(fmt::format("SetStage: member:{}({}) from:{} to:{}: debugMsg:{}", member->GetFormEditorID(), Utility::num2hex(member->formID), static_cast<int>(GetStage(member)), static_cast<int>(stage), debugMsg));
 		if (stage == STAGE::kLooted) {
 			StrippingArmorCommon::AddKeyword(member, "SAStateLooted");
 		} else if (stage == STAGE::kCorpsed) {
 			StrippingArmorCommon::AddKeyword(member, "SAStateCorpsed");
 		}
 		LootStageMap[member] = stage;
+		Debug(fmt::format("SetStage: Done. member:{}({}) from:{} to:{}", member->GetFormEditorID(), Utility::num2hex(member->formID), static_cast<int>(GetStage(member)), static_cast<int>(stage)));
 	}
 
 	STAGE GetStageFromKeyword(RE::TESObjectREFR* member)
 	{
+		if (Utility::IsWrongForm(member, "GetStageFromKeyword"))
+			return STAGE::kDefault;
 		if (StrippingArmorCommon::MCHasKeyword(member, "SAStateCorpsed"))
 			return STAGE::kCorpsed;
 		if (StrippingArmorCommon::MCHasKeyword(member, "SAStateLooted"))
@@ -72,6 +78,8 @@ namespace StateMachine
 
 	STAGE GetStageFromArmor(RE::TESObjectREFR* member)
 	{
+		if (Utility::IsWrongForm(member, "GetStageFromArmor"))
+			return STAGE::kDefault;
 		if (StrippingArmorCommon::HasDummySuits(member, true))
 			return STAGE::kCorpsed;
 		if (StrippingArmorCommon::HasDummySuits(member, false))
@@ -82,9 +90,19 @@ namespace StateMachine
 	std::vector<RE::TESObjectREFR*> GetTargetBodiesAll()
 	{
 		std::vector<RE::TESObjectREFR*> list = {};
+		std::vector<RE::TESObjectREFR*> delete_list = {};
 		for (auto itr = LootStageMap.begin(); itr != LootStageMap.end(); ++itr) {
+			auto member = itr->first;
+			if (Utility::IsWrongForm(member, "GetTargetBodiesAll")) {
+				delete_list.push_back(member);
+				continue;
+			}
 			list.push_back(itr->first);
 		}
+		for (auto obj : delete_list) {
+			UnList(obj);
+		}
+
 		return list;
 	}
 
@@ -92,6 +110,8 @@ namespace StateMachine
 	{
 		std::vector<RE::TESObjectREFR*> list = {};
 		for (auto itr = LootStageMap.begin(); itr != LootStageMap.end(); ++itr) {
+			if (Utility::IsWrongForm(itr->first, "GetTargetBodies"))
+				continue;
 			if (itr->second == stage)
 				list.push_back(itr->first);
 		}
@@ -100,6 +120,8 @@ namespace StateMachine
 
 	STAGE GetStageFromDetails(RE::TESObjectREFR* member)
 	{
+		if (Utility::IsWrongForm(member, "GetStageFromDetails"))
+			return STAGE::kDefault;
 		auto stage = GetStageFromKeyword(member);
 		if (stage == STAGE::kDefault)
 			stage = GetStageFromArmor(member);
@@ -112,6 +134,8 @@ namespace StateMachine
 
 	bool CheckCandidateCondition(RE::TESObjectREFR* member)
 	{
+		if (Utility::IsWrongForm(member, "CheckCandidateCondition"))
+			return false;
 		bool result = false;
 		if (member->HasKeyword(StrippingArmorCommon::GetKeyword("SADetailEtc")))
 			result = true;
@@ -129,6 +153,8 @@ namespace StateMachine
 	void AddToListForPickpocketTarget(RE::TESObjectREFR* member)
 	{
 		if (!member)
+			return;
+		if (Utility::IsWrongForm(member, "AddToListForPickpocketTarget"))
 			return;
 		PickpocketMap[member] = true;
 	}

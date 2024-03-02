@@ -23,7 +23,7 @@ namespace StateMachine
 	bool IsListed(RE::TESObjectREFR* member);
 	void ResetLootStageMap();
 	STAGE              GetStage(RE::TESObjectREFR* member, bool fromMap = true);
-	void               SetStage(RE::TESObjectREFR* member, STAGE stage);
+	void               SetStage(RE::TESObjectREFR* member, STAGE stage, std::string debugMsg);
 
 	STAGE              GetStageFromKeyword(RE::TESObjectREFR* member);
 	STAGE              GetStageFromArmor(RE::TESObjectREFR* member);

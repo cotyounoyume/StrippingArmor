@@ -125,7 +125,7 @@ namespace StrippingArmorByKey
 			if (member->IsDead(true)) {
 				StealEquipArmors(member);
 				StrippingArmorCommon::EquipDummysuit(member);
-				StateMachine::SetStage(member, StateMachine::STAGE::kLooted);
+				StateMachine::SetStage(member, StateMachine::STAGE::kLooted, "ProcessByKey");
 			} else {
 				//std::string msg = inDialog ? "in Dialog" : "in KeyPressed";
 				//Debug(fmt::format("Debug: {}", msg));

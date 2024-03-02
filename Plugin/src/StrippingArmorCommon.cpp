@@ -357,6 +357,8 @@ namespace StrippingArmorCommon
 			WaitCount--;
 			return false;
 		}
+		if (Utility::IsMenuOthersOpen())
+			return false;
 		bool result = SFSE::WinAPI::GetKeyState(Config::GetStrippingKeyNumber()) & 0x8000;
 		if (result) {
 			Debug(fmt::format("IsKeyPressed"));
