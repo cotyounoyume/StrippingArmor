@@ -80,8 +80,16 @@ namespace StrippingArmorCommon
 
 	void SetPlayerIfNeeded()
 	{
-		if (Player != nullptr)
+		if (Player != nullptr) {
+			if (Player->formID != 0x14) {
+				Debug("Unknown Error: reset StrippingArmorCommon:Player's formID");
+				Debug(fmt::format("before: id:{}", Utility::num2hex(Player->formID))); 
+				Player = Utility::GetPlayer();
+				PlayerActor = Utility::GetPlayerActor();
+				Debug(fmt::format("after: id:{}", Utility::num2hex(Player->formID))); 
+			}
 			return;
+		}
 		Player = Utility::GetPlayer();
 		PlayerActor = Utility::GetPlayerActor();
 	}

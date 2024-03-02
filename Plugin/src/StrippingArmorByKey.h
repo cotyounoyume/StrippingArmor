@@ -12,8 +12,8 @@ namespace StrippingArmorByKey
 
 	void SearchTargetsByKey(bool bForced);
 	void CallAndCheckDialogTarget();
-	void AddKeywordMonitoring();
-	void ProcessByKey(std::string debug = "");
+	void AddKeywordMonitoring(bool inDialog = false);
+	void ProcessByKey(bool inDialog);
 
 	void StealEquipArmors(RE::TESObjectREFR * member);
 	void AddKeywordForCandidates(RE::TESObjectREFR * member, bool isForcedByDebugging = false);

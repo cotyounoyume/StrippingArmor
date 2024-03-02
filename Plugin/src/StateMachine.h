@@ -41,11 +41,12 @@ namespace StateMachine
 	void ClearListForPickpocketTarget();
 	std::vector<RE::TESObjectREFR*> GetPickpocketTargetList();
 
-	void                            AddToListForKeytap(RE::TESObjectREFR* member);
+	void                            AddToListForKeytap(RE::TESObjectREFR* member, bool inDialog);
 	void                            RemoveFromListForKeytap(RE::TESObjectREFR* member);
-	bool                            IsListedInForKeytap(RE::TESObjectREFR* member);
+	bool                            IsListedInForKeytap(RE::TESObjectREFR* member, bool inDialog);
 	void                            ClearListForForKeytap();
-	std::vector<RE::TESObjectREFR*> GetForKeytapList();
+	std::vector<RE::TESObjectREFR*> GetForKeytapList(bool inDialog);
+	void                            ForDebugGetMember(bool inDialog);
 
 	inline std::unordered_map<RE::TESObjectREFR*, STAGE> LootStageMap;
 	inline std::unordered_map<RE::TESObjectREFR*, bool>  PickpocketMap;

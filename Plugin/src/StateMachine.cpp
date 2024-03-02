@@ -18,7 +18,7 @@ namespace StateMachine
 	{
 		std::vector<RE::TESObjectREFR*> unlisted;
 		for (auto itr = LootStageMap.begin(); itr != LootStageMap.end(); ++itr) {
-			if(itr->second == STAGE::kRemove)
+			if (itr->second == STAGE::kRemove)
 				unlisted.push_back(itr->first);
 		}
 		for (auto member : unlisted) {
@@ -126,7 +126,6 @@ namespace StateMachine
 		return result;
 	}
 
-
 	void AddToListForPickpocketTarget(RE::TESObjectREFR* member)
 	{
 		if (!member)
@@ -138,7 +137,7 @@ namespace StateMachine
 	{
 		if (!member)
 			return;
-		if(PickpocketMap.contains(member))
+		if (PickpocketMap.contains(member))
 			PickpocketMap.erase(member);
 	}
 
@@ -162,11 +161,11 @@ namespace StateMachine
 		PickpocketMap.clear();
 	}
 
-	void AddToListForKeytap(RE::TESObjectREFR* member)
+	void AddToListForKeytap(RE::TESObjectREFR* member, bool inDialog)
 	{
 		if (!member)
 			return;
-		if (StrippingArmorCommon::MCHasKeyword(member, "SAIAMSpeaker")) {
+		if (inDialog) {
 			DialogMap[member] = true;
 		} else {
 			KeytappedMap[member] = true;
@@ -186,9 +185,9 @@ namespace StateMachine
 		}
 	}
 
-	bool IsListedInForKeytap(RE::TESObjectREFR* member) 
+	bool IsListedInForKeytap(RE::TESObjectREFR* member, bool inDialog)
 	{
-		if (StrippingArmorCommon::MCHasKeyword(member, "SAIAMSpeaker")) {
+		if (inDialog) {
 			return DialogMap.contains(member);
 		} else {
 			return KeytappedMap.contains(member);
@@ -202,11 +201,10 @@ namespace StateMachine
 		KeytappedMap.clear();
 	}
 
-	std::vector<RE::TESObjectREFR*> GetForKeytapList()
+	std::vector<RE::TESObjectREFR*> GetForKeytapList(bool inDialog)
 	{
-
 		std::vector<RE::TESObjectREFR*> list = {};
-		if (Utility::IsMenuOpen("DialogueMenu")) {
+		if (inDialog) {
 			for (auto itr = DialogMap.begin(); itr != DialogMap.end(); ++itr) {
 				list.push_back(itr->first);
 			}
@@ -218,5 +216,23 @@ namespace StateMachine
 		return list;
 	}
 
+	void ForDebugGetMember(bool inDialog)
+	{
+		std::vector<RE::TESObjectREFR*> list = {};
+		if (inDialog) {
+			for (auto itr = DialogMap.begin(); itr != DialogMap.end(); ++itr) {
+				list.push_back(itr->first);
+			}
+		} else {
+			for (auto itr = KeytappedMap.begin(); itr != KeytappedMap.end(); ++itr) {
+				list.push_back(itr->first);
+			}
+		}
 
+		std::string msg = inDialog ? "DialogMap:" : "KeytappedMap:";
+		Debug(fmt::format("{}", msg));
+		for (auto member : list) {
+			Debug(fmt::format("\t{}({})", member->GetFormEditorID(), Utility::num2hex(member->formID)));
+		}
+	}
 }
